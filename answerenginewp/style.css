@@ -1379,7 +1379,7 @@ h2 {
 
 .score-gauge__value {
   font-family: 'Instrument Serif', Georgia, serif;
-  font-size: 48px;
+  font-size: 36px;
   fill: var(--white);
   text-anchor: middle;
   dominant-baseline: middle;
@@ -1842,20 +1842,7 @@ h2 {
   }
 }
 
-@media (max-width: 640px) {
-  :root {
-    --section-pad: var(--section-pad-mobile);
-    --container-pad: var(--container-pad-mobile);
-  }
-
-  .hero {
-    padding: 120px 0 72px;
-  }
-
-  .hero-scanner__input-wrap {
-    flex-direction: column;
-  }
-
+@media (max-width: 768px) {
   .site-nav__toggle {
     display: flex;
   }
@@ -1879,13 +1866,28 @@ h2 {
   }
 
   .site-nav__link {
-    padding: 14px var(--container-pad-mobile, 20px);
+    padding: 14px 20px;
     font-size: 16px;
   }
 
   .site-nav__link.btn--nav {
-    margin: 8px var(--container-pad-mobile, 20px);
+    margin: 8px 20px;
     text-align: center;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --section-pad: var(--section-pad-mobile);
+    --container-pad: var(--container-pad-mobile);
+  }
+
+  .hero {
+    padding: 120px 0 72px;
+  }
+
+  .hero-scanner__input-wrap {
+    flex-direction: column;
   }
 
   .how-it-works__grid {

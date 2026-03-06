@@ -83,8 +83,8 @@ get_header();
                                 stroke-dasharray="283"
                                 stroke-dashoffset="<?php echo esc_attr( $gauge_offset ); ?>"
                                 transform="rotate(-90 50 50)"/>
-                        <text class="score-gauge__value" x="50" y="48"><?php echo esc_html( $score ); ?></text>
-                        <text class="score-gauge__max" x="50" y="64">/100</text>
+                        <text class="score-gauge__value" x="50" y="45"><?php echo esc_html( $score ); ?></text>
+                        <text class="score-gauge__max" x="50" y="68">/100</text>
                     </svg>
                 </div>
                 <div class="scanner-results__tier">

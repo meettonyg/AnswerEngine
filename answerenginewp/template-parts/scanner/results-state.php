@@ -8,8 +8,8 @@
                     <circle class="score-gauge__fill" cx="50" cy="50" r="45" id="scoreGaugeFill"
                             stroke-dasharray="283" stroke-dashoffset="283"
                             transform="rotate(-90 50 50)"/>
-                    <text class="score-gauge__value" x="50" y="48" id="scoreValue">0</text>
-                    <text class="score-gauge__max" x="50" y="64">/100</text>
+                    <text class="score-gauge__value" x="50" y="45" id="scoreValue">0</text>
+                    <text class="score-gauge__max" x="50" y="68">/100</text>
                 </svg>
             </div>
             <div class="scanner-results__tier" id="scoreTier"></div>
