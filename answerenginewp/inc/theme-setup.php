@@ -7,11 +7,11 @@ function answerenginewp_create_pages() {
     $pages = array(
         'scanner'      => array( 'title' => 'Scanner',        'template' => 'page-scanner.php' ),
         'score-result' => array( 'title' => 'Score Result',    'template' => '' ),
-        'badge'        => array( 'title' => 'Badge',           'template' => '' ),
-        'docs'         => array( 'title' => 'Documentation',   'template' => '' ),
+        'badge'        => array( 'title' => 'Badge',           'template' => 'page-badge.php' ),
+        'docs'         => array( 'title' => 'Documentation',   'template' => 'page-docs.php' ),
         'methodology'  => array( 'title' => 'Methodology',     'template' => 'page-methodology.php' ),
-        'privacy'      => array( 'title' => 'Privacy Policy',  'template' => '' ),
-        'support'      => array( 'title' => 'Support',         'template' => '' ),
+        'privacy'      => array( 'title' => 'Privacy Policy',  'template' => 'page-privacy.php' ),
+        'support'      => array( 'title' => 'Support',         'template' => 'page-support.php' ),
     );
 
     foreach ( $pages as $slug => $page_data ) {
