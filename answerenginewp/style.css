@@ -49,8 +49,9 @@ Text Domain: answerenginewp
   --section-pad:        120px;
   --section-pad-mobile: 72px;
   --container-max:      1200px;
+  --container-pad-mobile-h: 20px;
   --container-pad:      0 32px;
-  --container-pad-mobile: 0 20px;
+  --container-pad-mobile: 0 var(--container-pad-mobile-h);
 }
 
 /* ==========================================================================
@@ -1877,12 +1878,12 @@ h2 {
   }
 
   .site-nav__link {
-    padding: 14px 20px;
+    padding: 14px var(--container-pad-mobile-h);
     font-size: 16px;
   }
 
   .site-nav__link.btn--nav {
-    margin: 8px 20px;
+    margin: 8px var(--container-pad-mobile-h);
     text-align: center;
   }
 }
