@@ -58,9 +58,10 @@ function aewp_scripts() {
             true
         );
         wp_localize_script( 'aewp-scanner', 'aewpScanner', array(
-            'apiUrl'  => rest_url( 'aewp/v1/scan' ),
-            'nonce'   => wp_create_nonce( 'wp_rest' ),
-            'siteUrl' => home_url(),
+            'apiUrl'     => rest_url( 'aewp/v1/scan' ),
+            'emailUrl'   => rest_url( 'aewp/v1/email' ),
+            'nonce'      => wp_create_nonce( 'wp_rest' ),
+            'siteUrl'    => home_url(),
         ) );
     }
 

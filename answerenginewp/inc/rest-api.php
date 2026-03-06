@@ -282,9 +282,10 @@ function aewp_handle_email_capture( WP_REST_Request $request ) {
         ), 404 );
     }
 
-    // Store email (hashed for privacy, raw for sending)
+    // Store email (hashed with salt for privacy, raw for sending)
     update_post_meta( $scan->ID, '_aewp_email', sanitize_email( $email ) );
-    update_post_meta( $scan->ID, '_aewp_email_hash', md5( strtolower( trim( $email ) ) ) );
+    $salt = defined( 'AUTH_SALT' ) ? AUTH_SALT : 'aewp-email-salt';
+    update_post_meta( $scan->ID, '_aewp_email_hash', hash( 'sha256', strtolower( trim( $email ) ) . $salt ) );
 
     // Send report email
     $url       = get_post_meta( $scan->ID, '_aewp_url', true );

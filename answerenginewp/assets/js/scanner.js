@@ -13,6 +13,7 @@
   // ---------------------------------------------------------------------------
   var API_URL = (typeof aewpScanner !== 'undefined') ? aewpScanner.apiUrl : '/wp-json/aewp/v1/scan';
   var API_NONCE = (typeof aewpScanner !== 'undefined') ? aewpScanner.nonce : '';
+  var EMAIL_URL = (typeof aewpScanner !== 'undefined') ? aewpScanner.emailUrl : '/wp-json/aewp/v1/email';
   var SITE_URL = (typeof aewpScanner !== 'undefined') ? aewpScanner.siteUrl : '';
 
   var STATUS_MESSAGES = [
@@ -311,7 +312,7 @@
         els.emailSubmit.disabled = true;
         els.emailSubmit.textContent = 'Sending…';
 
-        var emailUrl = API_URL.replace('/scan', '/email');
+        var emailUrl = EMAIL_URL;
         fetch(emailUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

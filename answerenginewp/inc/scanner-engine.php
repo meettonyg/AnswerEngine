@@ -9,17 +9,66 @@
  */
 
 /**
+ * Validate that a URL is safe to fetch (SSRF protection).
+ *
+ * Blocks requests to internal/private IPs, localhost, and cloud metadata services.
+ *
+ * @param string $url The URL to validate.
+ * @return true|WP_Error True if safe, WP_Error if blocked.
+ */
+function aewp_validate_url( $url ) {
+    $parsed = wp_parse_url( $url );
+
+    if ( empty( $parsed['host'] ) ) {
+        return new WP_Error( 'invalid_url', 'Invalid URL.' );
+    }
+
+    // Only allow http/https schemes
+    $scheme = isset( $parsed['scheme'] ) ? strtolower( $parsed['scheme'] ) : '';
+    if ( ! in_array( $scheme, array( 'http', 'https' ), true ) ) {
+        return new WP_Error( 'invalid_scheme', 'Only HTTP and HTTPS URLs are allowed.' );
+    }
+
+    $host = strtolower( $parsed['host'] );
+
+    // Block localhost and loopback
+    $blocked_hosts = array( 'localhost', '127.0.0.1', '0.0.0.0', '[::1]' );
+    if ( in_array( $host, $blocked_hosts, true ) ) {
+        return new WP_Error( 'blocked_host', 'Scanning internal addresses is not allowed.' );
+    }
+
+    // Resolve hostname and check for private/reserved IPs
+    $ip = gethostbyname( $host );
+    if ( $ip === $host ) {
+        // DNS resolution failed — could be a non-existent domain
+        return new WP_Error( 'dns_failed', 'Could not resolve hostname.' );
+    }
+
+    if ( ! filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) ) {
+        return new WP_Error( 'blocked_ip', 'Scanning internal or reserved IP addresses is not allowed.' );
+    }
+
+    return true;
+}
+
+/**
  * Scan a URL and return scoring data
  *
  * @param string $url The URL to scan.
  * @return array|WP_Error Scan results or error.
  */
 function aewp_scan_url( $url ) {
+    // SSRF protection: validate URL before fetching
+    $url_check = aewp_validate_url( $url );
+    if ( is_wp_error( $url_check ) ) {
+        return $url_check;
+    }
+
     // Fetch the page
     $response = wp_remote_get( $url, array(
         'timeout'    => 8,
         'user-agent' => 'AnswerEngineWP Scanner/1.0 (+https://answerenginewp.com)',
-        'sslverify'  => false,
+        'sslverify'  => true,
     ) );
 
     if ( is_wp_error( $response ) ) {
@@ -408,20 +457,35 @@ function aewp_analyze_feeds( $domain_root, $xpath = null ) {
                 $rss_url = $discovered;
             } elseif ( strpos( $discovered, '/' ) === 0 ) {
                 $rss_url = $domain_root . $discovered;
+            } else {
+                // Resolve page-relative path against domain root
+                $rss_url = $domain_root . '/' . $discovered;
             }
         }
     }
 
-    $urls = array(
+    // Validate all feed URLs against SSRF before fetching
+    $candidate_urls = array(
         'llms_txt'  => $domain_root . '/llms.txt',
         'llms_json' => $domain_root . '/llms-full.json',
         'rss'       => $rss_url,
         'sitemap'   => $domain_root . '/sitemap.xml',
     );
 
+    $urls = array();
+    foreach ( $candidate_urls as $key => $feed_url ) {
+        if ( true === aewp_validate_url( $feed_url ) ) {
+            $urls[ $key ] = $feed_url;
+        }
+    }
+
+    if ( empty( $urls ) ) {
+        return array( 'score' => 0 );
+    }
+
     $shared_opts = array(
         'timeout'    => 3,
-        'sslverify'  => false,
+        'sslverify'  => true,
         'user-agent' => 'AnswerEngineWP Scanner/1.0',
     );
 
@@ -438,41 +502,38 @@ function aewp_analyze_feeds( $domain_root, $xpath = null ) {
 
         $options = array(
             'timeout'   => 3,
-            'verify'    => false,
+            'verify'    => true,
         );
 
         $request_class = class_exists( 'WpOrg\Requests\Requests' ) ? 'WpOrg\Requests\Requests' : 'Requests';
         $responses = $request_class::request_multiple( $requests, $options );
 
-        // Score llms.txt
-        if ( isset( $responses['llms_txt'] ) && ! ( $responses['llms_txt'] instanceof \WpOrg\Requests\Exception ) && ! ( $responses['llms_txt'] instanceof \Requests_Exception ) ) {
-            if ( $responses['llms_txt']->status_code === 200 && strlen( $responses['llms_txt']->body ) > 10 ) {
-                $score += 40;
-            }
-        }
+        // Score each response using config-driven rules
+        $scoring_rules = array(
+            'llms_txt'  => array( 'points' => 40, 'validate_body' => true, 'min_length' => 10 ),
+            'llms_json' => array( 'points' => 40, 'validate_body' => true, 'json' => true ),
+            'rss'       => array( 'points' => 10 ),
+            'sitemap'   => array( 'points' => 10 ),
+        );
 
-        // Score llms-full.json
-        if ( isset( $responses['llms_json'] ) && ! ( $responses['llms_json'] instanceof \WpOrg\Requests\Exception ) && ! ( $responses['llms_json'] instanceof \Requests_Exception ) ) {
-            if ( $responses['llms_json']->status_code === 200 ) {
-                $json = json_decode( $responses['llms_json']->body, true );
-                if ( $json ) {
-                    $score += 40;
-                }
+        foreach ( $responses as $key => $response ) {
+            if ( ! isset( $scoring_rules[ $key ] ) ) {
+                continue;
             }
-        }
-
-        // Score RSS
-        if ( isset( $responses['rss'] ) && ! ( $responses['rss'] instanceof \WpOrg\Requests\Exception ) && ! ( $responses['rss'] instanceof \Requests_Exception ) ) {
-            if ( $responses['rss']->status_code === 200 ) {
-                $score += 10;
+            if ( $response instanceof \WpOrg\Requests\Exception || $response instanceof \Requests_Exception ) {
+                continue;
             }
-        }
-
-        // Score sitemap
-        if ( isset( $responses['sitemap'] ) && ! ( $responses['sitemap'] instanceof \WpOrg\Requests\Exception ) && ! ( $responses['sitemap'] instanceof \Requests_Exception ) ) {
-            if ( $responses['sitemap']->status_code === 200 ) {
-                $score += 10;
+            if ( $response->status_code !== 200 ) {
+                continue;
             }
+            $rule = $scoring_rules[ $key ];
+            if ( ! empty( $rule['min_length'] ) && strlen( $response->body ) <= $rule['min_length'] ) {
+                continue;
+            }
+            if ( ! empty( $rule['json'] ) && ! json_decode( $response->body, true ) ) {
+                continue;
+            }
+            $score += $rule['points'];
         }
     } else {
         // Fallback: sequential requests with reduced timeout
