@@ -44,6 +44,9 @@ function aewp_scripts() {
             '1.0',
             true
         );
+        wp_localize_script( 'aewp-home', 'aewpHome', array(
+            'scannerUrl' => home_url( '/scanner/' ),
+        ) );
     }
 
     if ( is_page( 'scanner' ) || is_page_template( 'page-scanner.php' ) ) {
@@ -74,6 +77,16 @@ function aewp_preconnect_fonts() {
     echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n";
 }
 add_action( 'wp_head', 'aewp_preconnect_fonts', 1 );
+
+// Plausible Analytics — set AEWP_PLAUSIBLE_DOMAIN constant in wp-config.php to enable
+function aewp_plausible_analytics() {
+    if ( ! defined( 'AEWP_PLAUSIBLE_DOMAIN' ) || empty( AEWP_PLAUSIBLE_DOMAIN ) ) {
+        return;
+    }
+    $domain = esc_attr( AEWP_PLAUSIBLE_DOMAIN );
+    echo '<script defer data-domain="' . $domain . '" src="https://plausible.io/js/script.js"></script>' . "\n";
+}
+add_action( 'wp_head', 'aewp_plausible_analytics', 2 );
 
 // Remove WordPress emoji script
 remove_action( 'wp_head', 'print_emoji_detection_script', 7 );

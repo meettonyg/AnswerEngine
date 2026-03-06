@@ -19,7 +19,7 @@
                     <li class="pricing-card__feature">Basic Speakable Answer Blocks</li>
                     <li class="pricing-card__feature">Basic /llms.txt generator</li>
                 </ul>
-                <a href="https://wordpress.org/plugins/answerenginewp/" class="btn btn--outline" style="width:100%;text-align:center" target="_blank" rel="noopener">Download Free &rarr;</a>
+                <a href="https://wordpress.org/plugins/answerenginewp/" class="btn btn--outline pricing-card__cta" target="_blank" rel="noopener">Download Free &rarr;</a>
             </div>
 
             <!-- Pro -->
@@ -36,7 +36,7 @@
                     <li class="pricing-card__feature">Dynamic /llms-full.json feeds</li>
                     <li class="pricing-card__feature">Priority support</li>
                 </ul>
-                <a href="#" class="btn btn--primary" style="width:100%;text-align:center">Upgrade to Pro &rarr;</a>
+                <a href="https://wordpress.org/plugins/answerenginewp/" class="btn btn--primary pricing-card__cta" target="_blank" rel="noopener">Upgrade to Pro &rarr;</a>
             </div>
 
             <!-- Agency -->
@@ -51,7 +51,7 @@
                     <li class="pricing-card__feature">Unbranded PDF audit reports</li>
                     <li class="pricing-card__feature">Headless API access</li>
                 </ul>
-                <a href="#" class="btn btn--navy" style="width:100%;text-align:center">Get Agency License &rarr;</a>
+                <a href="https://wordpress.org/plugins/answerenginewp/" class="btn btn--navy pricing-card__cta" target="_blank" rel="noopener">Get Agency License &rarr;</a>
             </div>
         </div>
 

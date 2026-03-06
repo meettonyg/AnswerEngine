@@ -1052,6 +1052,11 @@ h2 {
   flex-shrink: 0;
 }
 
+.pricing-card__cta {
+  width: 100%;
+  text-align: center;
+}
+
 .pricing__context {
   font-size: 14px;
   color: var(--gray-500);

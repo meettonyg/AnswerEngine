@@ -108,7 +108,7 @@
       error.classList.remove('is-visible');
 
       // Build scanner URL with pre-filled values
-      var scannerUrl = '/scanner/';
+      var scannerUrl = (typeof aewpHome !== 'undefined' && aewpHome.scannerUrl) ? aewpHome.scannerUrl : '/scanner/';
       var url = val;
       if (!/^https?:\/\//i.test(url)) {
         url = 'https://' + url;

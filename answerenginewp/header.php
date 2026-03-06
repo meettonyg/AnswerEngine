@@ -16,7 +16,8 @@ if ( is_page( 'scanner' ) || is_page_template( 'page-scanner.php' ) ) {
 get_template_part( 'template-parts/' . $nav_template );
 ?>
 
-<?php if ( ! is_front_page() && ! is_page( 'scanner' ) || is_page_template( 'page-scanner.php' ) ) : ?>
+<?php $is_scanner = is_page( 'scanner' ) || is_page_template( 'page-scanner.php' ); ?>
+<?php if ( ! is_front_page() && ! $is_scanner ) : ?>
 <script>
 (function() {
   var nav = document.getElementById('siteNav');
