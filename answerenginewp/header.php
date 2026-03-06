@@ -15,3 +15,20 @@ if ( is_page_template( 'page-scanner.php' ) ) {
 }
 get_template_part( 'template-parts/' . $nav_template );
 ?>
+
+<?php if ( ! is_front_page() && ! is_page_template( 'page-scanner.php' ) ) : ?>
+<script>
+(function() {
+  var nav = document.getElementById('siteNav');
+  if (!nav) return;
+  var scrolled = true;
+  window.addEventListener('scroll', function() {
+    var should = window.scrollY > 40;
+    if (should !== scrolled) {
+      scrolled = should;
+      nav.classList.toggle('site-nav--scrolled', scrolled);
+    }
+  }, { passive: true });
+})();
+</script>
+<?php endif; ?>

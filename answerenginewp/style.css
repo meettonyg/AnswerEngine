@@ -403,6 +403,9 @@ h2 {
 }
 
 .site-nav__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 18px;
   font-weight: 700;
@@ -413,6 +416,10 @@ h2 {
 
 .site-nav__logo:hover {
   color: var(--white);
+}
+
+.site-nav__logo-icon {
+  flex-shrink: 0;
 }
 
 .site-nav__links {
@@ -1647,6 +1654,7 @@ h2 {
 }
 
 .page-content h1 {
+  font-size: clamp(32px, 4.5vw, 48px);
   margin-bottom: 24px;
 }
 
