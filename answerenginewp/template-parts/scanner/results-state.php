@@ -73,6 +73,18 @@
             </div>
         </div>
 
+        <!-- Email Capture (optional, non-blocking) -->
+        <div class="email-capture" id="emailCapture">
+            <p class="email-capture__heading">Get your full report + improvement tips by email</p>
+            <div class="email-capture__form">
+                <input type="email" id="emailInput" class="email-capture__input"
+                       placeholder="you@company.com" autocomplete="email">
+                <button type="button" class="email-capture__submit" id="emailSubmit">Send Report</button>
+            </div>
+            <p class="email-capture__note">Optional. We'll send your PDF report and 3 actionable tips. No spam, ever.</p>
+            <p class="email-capture__success" id="emailSuccess" style="display:none">Sent! Check your inbox.</p>
+        </div>
+
         <!-- CTAs -->
         <div class="scanner-results__ctas">
             <div class="scanner-results__cta-primary">
