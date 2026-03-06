@@ -33,3 +33,16 @@ get_template_part( 'template-parts/' . $nav_template );
 })();
 </script>
 <?php endif; ?>
+
+<script>
+(function() {
+  var toggle = document.getElementById('navToggle');
+  var links = document.getElementById('navLinks');
+  if (!toggle || !links) return;
+  toggle.addEventListener('click', function() {
+    var expanded = toggle.getAttribute('aria-expanded') === 'true';
+    toggle.setAttribute('aria-expanded', String(!expanded));
+    links.classList.toggle('is-open', !expanded);
+  });
+})();
+</script>

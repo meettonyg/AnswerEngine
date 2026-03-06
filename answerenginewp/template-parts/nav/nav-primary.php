@@ -9,7 +9,12 @@
             </svg>
             AnswerEngineWP
         </a>
-        <div class="site-nav__links">
+        <button class="site-nav__toggle" id="navToggle" aria-expanded="false" aria-controls="navLinks" aria-label="Toggle navigation">
+            <span class="site-nav__toggle-bar"></span>
+            <span class="site-nav__toggle-bar"></span>
+            <span class="site-nav__toggle-bar"></span>
+        </button>
+        <div class="site-nav__links" id="navLinks">
             <a href="<?php echo esc_url( home_url( '/methodology/' ) ); ?>" class="site-nav__link">Methodology</a>
             <a href="https://wordpress.org/plugins/answerenginewp/" class="site-nav__link" target="_blank" rel="noopener">Download Plugin</a>
             <a href="<?php echo esc_url( home_url( '/scanner/' ) ); ?>" class="btn btn--nav">Scan Your Site</a>

@@ -185,16 +185,16 @@ function aewp_meta_tags() {
         echo '<meta property="og:description" content="Free AI Visibility Score for any website. See what ChatGPT can extract from your site — and what it can\'t.">' . "\n";
         echo '<meta property="og:url" content="https://answerenginewp.com">' . "\n";
         echo '<meta property="og:type" content="website">' . "\n";
-        echo '<meta property="og:image" content="https://answerenginewp.com/assets/images/og-image-1200x630.png">' . "\n";
+        echo '<meta property="og:image" content="' . esc_url( get_template_directory_uri() . '/assets/images/og-image-1200x630.png' ) . '">' . "\n";
         echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
         echo '<meta name="twitter:title" content="Is your website invisible to ChatGPT?">' . "\n";
         echo '<meta name="twitter:description" content="Free AI Visibility Score for any website. Find out in 10 seconds.">' . "\n";
-        echo '<meta name="twitter:image" content="https://answerenginewp.com/assets/images/og-image-1200x630.png">' . "\n";
+        echo '<meta name="twitter:image" content="' . esc_url( get_template_directory_uri() . '/assets/images/og-image-1200x630.png' ) . '">' . "\n";
     } elseif ( is_page( 'scanner' ) || is_page_template( 'page-scanner.php' ) ) {
         echo '<meta name="description" content="Free AI Visibility Score for any website. Enter your URL and see what AI systems can extract from your site in under 10 seconds.">' . "\n";
         echo '<meta property="og:title" content="Is your website invisible to AI? Scan free. &middot; AnswerEngineWP">' . "\n";
         echo '<meta property="og:description" content="Enter any URL. Get your AI Visibility Score in under 10 seconds. Free, no login required.">' . "\n";
-        echo '<meta property="og:image" content="https://answerenginewp.com/assets/images/og-scanner-1200x630.png">' . "\n";
+        echo '<meta property="og:image" content="' . esc_url( get_template_directory_uri() . '/assets/images/og-scanner-1200x630.png' ) . '">' . "\n";
         echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
     }
 }
