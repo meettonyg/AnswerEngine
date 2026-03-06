@@ -5,25 +5,28 @@
 
 function answerenginewp_create_pages() {
     $pages = array(
-        'scanner'      => 'Scanner',
-        'score-result' => 'Score Result',
-        'badge'        => 'Badge',
-        'docs'         => 'Documentation',
-        'methodology'  => 'Methodology',
-        'privacy'      => 'Privacy Policy',
-        'support'      => 'Support',
+        'scanner'      => array( 'title' => 'Scanner',        'template' => 'page-scanner.php' ),
+        'score-result' => array( 'title' => 'Score Result',    'template' => '' ),
+        'badge'        => array( 'title' => 'Badge',           'template' => 'page-badge.php' ),
+        'docs'         => array( 'title' => 'Documentation',   'template' => 'page-docs.php' ),
+        'methodology'  => array( 'title' => 'Methodology',     'template' => 'page-methodology.php' ),
+        'privacy'      => array( 'title' => 'Privacy Policy',  'template' => 'page-privacy.php' ),
+        'support'      => array( 'title' => 'Support',         'template' => 'page-support.php' ),
     );
 
-    foreach ( $pages as $slug => $title ) {
+    foreach ( $pages as $slug => $page_data ) {
         $existing = get_page_by_path( $slug );
         if ( ! $existing ) {
-            wp_insert_post( array(
-                'post_title'   => $title,
+            $page_id = wp_insert_post( array(
+                'post_title'   => $page_data['title'],
                 'post_name'    => $slug,
                 'post_status'  => 'publish',
                 'post_type'    => 'page',
                 'post_content' => '',
             ) );
+            if ( $page_id && ! empty( $page_data['template'] ) ) {
+                update_post_meta( $page_id, '_wp_page_template', $page_data['template'] );
+            }
         }
     }
 

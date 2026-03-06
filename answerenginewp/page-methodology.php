@@ -8,6 +8,7 @@
 get_header();
 ?>
 
+<main>
 <div class="page-content">
     <div class="container">
         <div class="section-label">Methodology</div>
@@ -59,5 +60,6 @@ get_header();
         <p>The scanner uses on-page HTML analysis only. We fetch the target URL server-side, parse the DOM, and evaluate structural signals. No third-party APIs, no cookies, no tracking pixels. Each scan is stateless and independent.</p>
     </div>
 </div>
+</main>
 
 <?php get_footer(); ?>

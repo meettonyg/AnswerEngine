@@ -1,6 +1,6 @@
 <?php
 /**
- * Template Name: Badge
+ * Template Name: AI Visibility Badge
  *
  * @package AnswerEngineWP
  */
@@ -8,52 +8,40 @@
 get_header();
 ?>
 
+<main>
 <div class="page-content">
     <div class="container">
         <div class="section-label">AI Visibility Badge</div>
-        <h1>Show Your AI Visibility Score</h1>
-        <p>Sites scoring 70 or above on the AI Visibility Score can embed a badge to showcase their AI-readiness to visitors.</p>
+        <h1>Embed Your AI Visibility Score</h1>
+        <p>Scored 70 or above? Display your AI Visibility Badge on your site as a credibility signal.</p>
 
-        <h2>How to Get Your Badge</h2>
+        <h2>How It Works</h2>
         <ol>
-            <li><a href="<?php echo esc_url( home_url( '/scanner/' ) ); ?>">Scan your site</a> with the AI Visibility Scanner</li>
-            <li>If your score is 70+, you'll see a "Copy Badge Snippet" button in the results</li>
-            <li>Paste the HTML snippet into your site's footer, sidebar, or about page</li>
+            <li>Scan your site at <a href="<?php echo esc_url( home_url( '/scanner/' ) ); ?>">answerenginewp.com/scanner</a></li>
+            <li>If you score 70+ (AI Extractable or AI Authority), you&rsquo;ll see the option to embed a badge</li>
+            <li>Copy the HTML snippet below and paste it into your site&rsquo;s footer, sidebar, or about page</li>
         </ol>
+        <p>The badge displays your score, updates automatically when you rescan, and links back to your public score page.</p>
 
-        <h2>Badge Preview</h2>
-        <div style="background: var(--gray-50); border-radius: 12px; padding: 32px; text-align: center; margin: 24px 0;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="160" height="50" viewBox="0 0 160 50">
-                <rect width="160" height="50" rx="8" fill="#0F172A"/>
-                <rect x="0" y="0" width="4" height="50" rx="2" fill="#3B82F6"/>
-                <text x="24" y="22" font-family="Georgia, serif" font-size="18" font-weight="bold" fill="#3B82F6">78</text>
-                <text x="48" y="22" font-family="Arial, sans-serif" font-size="10" fill="#94A3B8">/100</text>
-                <text x="24" y="36" font-family="Arial, sans-serif" font-size="9" fill="#94A3B8">AI Visibility Score</text>
-                <text x="24" y="46" font-family="Arial, sans-serif" font-size="7" fill="#64748B">answerenginewp.com</text>
-            </svg>
-            <p class="text-small" style="margin-top: 16px;">Example badge for a score of 78/100</p>
-        </div>
-
-        <h2>Embed Code Format</h2>
-        <p>The badge embed code looks like this:</p>
-        <pre style="background: var(--gray-50); border-radius: 8px; padding: 20px; overflow-x: auto; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6;"><code>&lt;a href="https://answerenginewp.com/score/{hash}"
-   title="AI Visibility Score: {score}/100 — {tierLabel}"
+        <h2>Embed Code</h2>
+        <p>Copy and paste this HTML into your site:</p>
+<pre><code>&lt;a href="https://answerenginewp.com/score/YOUR_HASH"
+   title="AI Visibility Score &mdash; Verified by AnswerEngineWP"
    style="display:inline-block;text-decoration:none"&gt;
-  &lt;img src="https://answerenginewp.com/wp-json/aewp/v1/badge/{hash}.svg"
-       alt="AI Visibility Score: {score}/100"
+  &lt;img src="https://answerenginewp.com/wp-json/aewp/v1/badge/YOUR_HASH.svg"
+       alt="AI Visibility Score"
        width="160" height="50"&gt;
 &lt;/a&gt;</code></pre>
+        <p>Replace <code>YOUR_HASH</code> with the hash from your scan results page URL.</p>
 
         <h2>Badge Guidelines</h2>
         <ul>
-            <li>Badges are available for scores of 70 and above</li>
-            <li>The badge links to your public score page, which shows your full results</li>
-            <li>Badge scores update when you re-scan your site (new hash is generated)</li>
-            <li>Do not modify the badge SVG or misrepresent your score</li>
+            <li>Display the badge as-is. Don&rsquo;t modify the SVG or alter the score.</li>
+            <li>The badge is for sites that have been scanned and scored. Don&rsquo;t embed it for sites that haven&rsquo;t been analyzed.</li>
+            <li>The badge links to your public score page, where visitors can verify your score and scan their own site.</li>
         </ul>
-
-        <p style="margin-top: 32px;"><a href="<?php echo esc_url( home_url( '/scanner/' ) ); ?>" class="btn btn--primary">Scan Your Site to Get a Badge &rarr;</a></p>
     </div>
 </div>
+</main>
 
 <?php get_footer(); ?>

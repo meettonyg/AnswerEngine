@@ -257,6 +257,11 @@ h2 {
   transform: translateY(-1px);
 }
 
+.btn:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
 /* ==========================================================================
    Cards
    ========================================================================== */
@@ -403,6 +408,9 @@ h2 {
 }
 
 .site-nav__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 18px;
   font-weight: 700;
@@ -413,6 +421,10 @@ h2 {
 
 .site-nav__logo:hover {
   color: var(--white);
+}
+
+.site-nav__logo-icon {
+  flex-shrink: 0;
 }
 
 .site-nav__links {
@@ -431,6 +443,39 @@ h2 {
 
 .site-nav__link:hover {
   color: var(--white);
+}
+
+/* Hamburger toggle — hidden on desktop */
+.site-nav__toggle {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  flex-direction: column;
+  gap: 5px;
+  z-index: 11;
+}
+
+.site-nav__toggle-bar {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--white);
+  border-radius: 2px;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.site-nav__toggle[aria-expanded="true"] .site-nav__toggle-bar:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.site-nav__toggle[aria-expanded="true"] .site-nav__toggle-bar:nth-child(2) {
+  opacity: 0;
+}
+
+.site-nav__toggle[aria-expanded="true"] .site-nav__toggle-bar:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
 }
 
 /* ==========================================================================
@@ -1045,6 +1090,11 @@ h2 {
   flex-shrink: 0;
 }
 
+.pricing-card__cta {
+  width: 100%;
+  text-align: center;
+}
+
 .pricing__context {
   font-size: 14px;
   color: var(--gray-500);
@@ -1324,8 +1374,6 @@ h2 {
   stroke-width: 8;
   stroke-linecap: round;
   stroke-dasharray: 283;
-  transform: rotate(-90deg);
-  transform-origin: center;
   animation: scoreFill 1.8s cubic-bezier(.16,1,.3,1) forwards;
 }
 
@@ -1647,6 +1695,7 @@ h2 {
 }
 
 .page-content h1 {
+  font-size: clamp(32px, 4.5vw, 48px);
   margin-bottom: 24px;
 }
 
@@ -1684,6 +1733,30 @@ h2 {
 
 .page-content li {
   padding: 4px 0;
+}
+
+.page-content code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  background: rgba(255,255,255,0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.page-content pre {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  padding: 20px 24px;
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+
+.page-content pre code {
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 /* ==========================================================================
@@ -1783,8 +1856,36 @@ h2 {
     flex-direction: column;
   }
 
-  .site-nav__link:not(.btn--nav) {
+  .site-nav__toggle {
+    display: flex;
+  }
+
+  .site-nav__links {
     display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    gap: 0;
+    background: rgba(15, 25, 35, 0.98);
+    backdrop-filter: blur(12px);
+    padding: 8px 0;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .site-nav__links.is-open {
+    display: flex;
+  }
+
+  .site-nav__link {
+    padding: 14px var(--container-pad-mobile, 20px);
+    font-size: 16px;
+  }
+
+  .site-nav__link.btn--nav {
+    margin: 8px var(--container-pad-mobile, 20px);
+    text-align: center;
   }
 
   .how-it-works__grid {
@@ -1798,6 +1899,12 @@ h2 {
   .scanner-results__cta-actions {
     flex-direction: column;
     align-items: center;
+  }
+
+  .competitor-gap__table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .site-footer .container {

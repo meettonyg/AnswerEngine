@@ -44,9 +44,12 @@ function aewp_scripts() {
             '1.0',
             true
         );
+        wp_localize_script( 'aewp-home', 'aewpHome', array(
+            'scannerUrl' => home_url( '/scanner/' ),
+        ) );
     }
 
-    if ( is_page_template( 'page-scanner.php' ) ) {
+    if ( is_page( 'scanner' ) || is_page_template( 'page-scanner.php' ) ) {
         wp_enqueue_script(
             'aewp-scanner',
             get_template_directory_uri() . '/assets/js/scanner.js',
@@ -74,6 +77,16 @@ function aewp_preconnect_fonts() {
     echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n";
 }
 add_action( 'wp_head', 'aewp_preconnect_fonts', 1 );
+
+// Plausible Analytics — set AEWP_PLAUSIBLE_DOMAIN constant in wp-config.php to enable
+function aewp_plausible_analytics() {
+    if ( ! defined( 'AEWP_PLAUSIBLE_DOMAIN' ) || empty( AEWP_PLAUSIBLE_DOMAIN ) ) {
+        return;
+    }
+    $domain = esc_attr( AEWP_PLAUSIBLE_DOMAIN );
+    echo '<script defer data-domain="' . $domain . '" src="https://plausible.io/js/script.js"></script>' . "\n";
+}
+add_action( 'wp_head', 'aewp_plausible_analytics', 2 );
 
 // Remove WordPress emoji script
 remove_action( 'wp_head', 'print_emoji_detection_script', 7 );
@@ -172,16 +185,16 @@ function aewp_meta_tags() {
         echo '<meta property="og:description" content="Free AI Visibility Score for any website. See what ChatGPT can extract from your site — and what it can\'t.">' . "\n";
         echo '<meta property="og:url" content="https://answerenginewp.com">' . "\n";
         echo '<meta property="og:type" content="website">' . "\n";
-        echo '<meta property="og:image" content="https://answerenginewp.com/assets/images/og-image-1200x630.png">' . "\n";
+        echo '<meta property="og:image" content="' . esc_url( get_template_directory_uri() . '/assets/images/og-image-1200x630.png' ) . '">' . "\n";
         echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
         echo '<meta name="twitter:title" content="Is your website invisible to ChatGPT?">' . "\n";
         echo '<meta name="twitter:description" content="Free AI Visibility Score for any website. Find out in 10 seconds.">' . "\n";
-        echo '<meta name="twitter:image" content="https://answerenginewp.com/assets/images/og-image-1200x630.png">' . "\n";
-    } elseif ( is_page_template( 'page-scanner.php' ) ) {
+        echo '<meta name="twitter:image" content="' . esc_url( get_template_directory_uri() . '/assets/images/og-image-1200x630.png' ) . '">' . "\n";
+    } elseif ( is_page( 'scanner' ) || is_page_template( 'page-scanner.php' ) ) {
         echo '<meta name="description" content="Free AI Visibility Score for any website. Enter your URL and see what AI systems can extract from your site in under 10 seconds.">' . "\n";
         echo '<meta property="og:title" content="Is your website invisible to AI? Scan free. &middot; AnswerEngineWP">' . "\n";
         echo '<meta property="og:description" content="Enter any URL. Get your AI Visibility Score in under 10 seconds. Free, no login required.">' . "\n";
-        echo '<meta property="og:image" content="https://answerenginewp.com/assets/images/og-scanner-1200x630.png">' . "\n";
+        echo '<meta property="og:image" content="' . esc_url( get_template_directory_uri() . '/assets/images/og-scanner-1200x630.png' ) . '">' . "\n";
         echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
     }
 }

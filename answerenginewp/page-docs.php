@@ -8,35 +8,38 @@
 get_header();
 ?>
 
+<main>
 <div class="page-content">
     <div class="container">
         <div class="section-label">Documentation</div>
-        <h1>AnswerEngineWP Documentation</h1>
-        <p>Comprehensive documentation for the AnswerEngineWP plugin is available on our WordPress.org plugin page and will be expanded here as the plugin matures.</p>
+        <h1>Getting Started with AnswerEngineWP</h1>
+        <p>AnswerEngineWP works alongside your existing SEO plugin to add AI-specific structure that makes your content extractable and citable by AI systems.</p>
 
-        <h2>Getting Started</h2>
-        <p>Install the free AnswerEngineWP plugin from the WordPress plugin directory to begin optimizing your site for AI visibility.</p>
-        <p><a href="https://wordpress.org/plugins/answerenginewp/" class="btn btn--primary" target="_blank" rel="noopener">Download from WordPress.org &rarr;</a></p>
+        <h2>Installation</h2>
+        <ol>
+            <li>Download AnswerEngineWP from the WordPress plugin directory</li>
+            <li>Activate the plugin &mdash; it automatically detects Yoast, Rank Math, or All in One SEO and enters Companion Mode</li>
+            <li>Run your first scan from the AI Visibility dashboard to see your baseline score</li>
+            <li>Follow the recommended fixes to improve your score</li>
+        </ol>
 
-        <h2>Plugin Features</h2>
-        <ul>
-            <li><strong>AI Visibility Score</strong> &mdash; Get a 0&ndash;100 score measuring how extractable and citable your content is.</li>
-            <li><strong>AI Extraction Preview</strong> &mdash; See exactly what AI systems can extract from your pages.</li>
-            <li><strong>Speakable Answer Blocks</strong> &mdash; Create structured content blocks optimized for AI citation.</li>
-            <li><strong>/llms.txt Generator</strong> &mdash; Generate machine-readable manifests for AI crawlers.</li>
-        </ul>
+        <h2>Core Concepts</h2>
 
-        <h2>Compatibility</h2>
-        <p>AnswerEngineWP is designed to work alongside existing SEO plugins without conflicts:</p>
-        <ul>
-            <li>Yoast SEO</li>
-            <li>Rank Math</li>
-            <li>All in One SEO</li>
-        </ul>
+        <h3>AI Visibility Score</h3>
+        <p>A 0&ndash;100 measure of how well AI systems can extract and cite your content. Calculated from six structural signals: schema completeness, content structure, FAQ coverage, summary presence, feed readiness, and entity density.</p>
 
-        <h2>Need Help?</h2>
-        <p>Visit our <a href="<?php echo esc_url( home_url( '/support/' ) ); ?>">support page</a> for assistance or post on the <a href="https://wordpress.org/support/plugin/answerenginewp/" target="_blank" rel="noopener">WordPress.org support forum</a>.</p>
+        <h3>Companion Mode</h3>
+        <p>AnswerEngineWP only adds AI-specific markup (Speakable, FAQ Answer Blocks, knowledge feeds). It never duplicates the schema your SEO plugin already manages.</p>
+
+        <h3>Answer Blocks</h3>
+        <p>Structured content blocks you add in the Gutenberg editor. Each block contains a question, answer summary, and supporting facts &mdash; the format AI systems prefer to cite.</p>
+
+        <h3>Knowledge Feeds</h3>
+        <p>Machine-readable files (<code>/llms.txt</code> and <code>/llms-full.json</code>) that AI crawlers use to understand your site&rsquo;s content and structure.</p>
+
+        <p>Full documentation is being expanded. Check back soon or reach out via the <a href="<?php echo esc_url( home_url( '/support/' ) ); ?>">support page</a> if you have questions.</p>
     </div>
 </div>
+</main>
 
 <?php get_footer(); ?>

@@ -51,7 +51,8 @@ function aewp_check_rate_limit() {
 
     // Increment counter
     $data['count']++;
-    set_transient( $key, $data, $window - ( time() - $data['started'] ) );
+    $ttl = $window - ( time() - $data['started'] );
+    set_transient( $key, $data, max( 1, $ttl ) );
 
     return true;
 }

@@ -39,7 +39,7 @@ function aewp_scan_url( $url ) {
     // Parse HTML
     $doc = new DOMDocument();
     libxml_use_internal_errors( true );
-    $doc->loadHTML( mb_convert_encoding( $html, 'HTML-ENTITIES', 'UTF-8' ) );
+    $doc->loadHTML( '<?xml encoding="UTF-8">' . $html );
     libxml_clear_errors();
 
     $xpath = new DOMXPath( $doc );
