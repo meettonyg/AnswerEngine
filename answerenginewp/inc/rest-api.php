@@ -205,6 +205,9 @@ function aewp_handle_badge( WP_REST_Request $request ) {
     }
 
     $score = intval( get_post_meta( $scan->ID, '_aewp_score', true ) );
+    if ( $score < 70 ) {
+        return new WP_REST_Response( array( 'message' => 'Badges are available for scores of 70 or above.' ), 403 );
+    }
     $svg = aewp_generate_badge_svg( $score );
 
     header( 'Content-Type: image/svg+xml' );

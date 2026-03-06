@@ -478,7 +478,12 @@
       .then(function (data) {
         stopLoading();
         if (data.success) {
-          renderResults(data);
+          try {
+            renderResults(data);
+          } catch (renderErr) {
+            showState('input');
+            showError('Something went wrong displaying your results. Please try again.');
+          }
         } else {
           showState('input');
           showError(data.message || 'Something went wrong. Try again.');

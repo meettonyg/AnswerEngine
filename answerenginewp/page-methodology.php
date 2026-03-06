@@ -12,7 +12,7 @@ get_header();
 <div class="page-content">
     <div class="container">
         <div class="section-label">Methodology</div>
-        <h1 class="page-content__h1">How the AI Visibility Score Works</h1>
+        <h1>How the AI Visibility Score Works</h1>
         <p>The AI Visibility Score is a 0&ndash;100 metric that measures how extractable and citable your website content is by AI systems like ChatGPT, Perplexity, and Google AI Overviews.</p>
 
         <h2>What We Measure</h2>

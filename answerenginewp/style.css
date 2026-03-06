@@ -257,6 +257,11 @@ h2 {
   transform: translateY(-1px);
 }
 
+.btn:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
 /* ==========================================================================
    Cards
    ========================================================================== */
@@ -1811,6 +1816,12 @@ h2 {
   .scanner-results__cta-actions {
     flex-direction: column;
     align-items: center;
+  }
+
+  .competitor-gap__table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .site-footer .container {
