@@ -1,4 +1,4 @@
-<section class="features section">
+<section class="features section" id="features">
     <div class="container">
         <div class="fade-up">
             <div class="section-label">Features</div>

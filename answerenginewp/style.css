@@ -16,6 +16,10 @@ Text Domain: answerenginewp
    Design System — CSS Custom Properties
    ========================================================================== */
 
+html {
+  scroll-behavior: smooth;
+}
+
 :root {
   /* Primary */
   --navy:        #0F1923;
@@ -409,6 +413,13 @@ h2 {
   color: var(--white);
   text-decoration: none;
   letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.site-nav__logo-icon {
+  flex-shrink: 0;
 }
 
 .site-nav__logo:hover {
