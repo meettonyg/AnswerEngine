@@ -15,6 +15,7 @@ if ( ! $scan ) {
     status_header( 404 );
     get_header();
     ?>
+    <main>
     <div class="page-404">
         <div class="container">
             <div class="page-404__code">404</div>
@@ -22,6 +23,7 @@ if ( ! $scan ) {
             <a href="<?php echo esc_url( home_url( '/scanner/' ) ); ?>" class="btn btn--primary">Scan a site &rarr;</a>
         </div>
     </div>
+    </main>
     <?php
     get_footer();
     return;
@@ -53,12 +55,14 @@ add_action( 'wp_head', function() use ( $url, $score, $tier, $hash, $og_image_ur
     echo '<meta property="og:url" content="' . esc_url( home_url( '/score/' . $hash ) ) . '">' . "\n";
     echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
     echo '<meta name="twitter:title" content="' . esc_attr( $url ) . ' scored ' . $score . '/100 on the AI Visibility Score">' . "\n";
+    echo '<meta name="twitter:description" content="' . esc_attr( $tier['label'] ) . '. Scan your own site free at answerenginewp.com/scanner">' . "\n";
     echo '<meta name="twitter:image" content="' . esc_url( $og_image_url ) . '">' . "\n";
 } );
 
 get_header();
 ?>
 
+<main>
 <section class="score-page">
     <div class="container">
         <div class="score-page__header">
@@ -129,6 +133,40 @@ get_header();
             </div>
             <?php endif; ?>
 
+            <!-- Competitor Gap -->
+            <?php if ( is_array( $competitor ) && ! empty( $competitor ) ) : ?>
+            <div class="competitor-gap">
+                <h3 class="competitor-gap__title">Competitor Structure Gap</h3>
+                <table class="competitor-gap__table">
+                    <thead>
+                        <tr>
+                            <th>Signal</th>
+                            <th><?php echo esc_html( aewp_clean_url_for_display( $url ) ); ?></th>
+                            <th><?php echo esc_html( isset( $competitor['url'] ) ? $competitor['url'] : 'Competitor' ); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Overall Score</strong></td>
+                            <td class="score-cell" style="color:<?php echo esc_attr( $tier['color'] ); ?>"><?php echo intval( $score ); ?></td>
+                            <td class="score-cell"><?php echo intval( $competitor['score'] ); ?></td>
+                        </tr>
+                        <?php if ( is_array( $sub_scores ) && is_array( $competitor['sub_scores'] ?? null ) ) :
+                            foreach ( $sub_scores as $key => $sub ) :
+                                if ( ! is_array( $sub ) ) continue;
+                                $comp_sub = isset( $competitor['sub_scores'][ $key ] ) ? $competitor['sub_scores'][ $key ] : null;
+                        ?>
+                            <tr>
+                                <td><?php echo esc_html( $sub['label'] ); ?></td>
+                                <td class="score-cell"><?php echo intval( $sub['score'] ); ?></td>
+                                <td class="score-cell"><?php echo is_array( $comp_sub ) ? intval( $comp_sub['score'] ) : '&mdash;'; ?></td>
+                            </tr>
+                        <?php endforeach; endif; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php endif; ?>
+
             <!-- Extraction Preview -->
             <?php if ( is_array( $extraction ) ) : ?>
             <div class="extraction">
@@ -146,6 +184,11 @@ get_header();
                                 <div class="extraction__item extraction__item--found">&#10003; Entity: <?php echo esc_html( $entity ); ?></div>
                             <?php endforeach; ?>
                         <?php endif; ?>
+                        <?php if ( ! empty( $extraction['headlines'] ) ) : ?>
+                            <?php foreach ( array_slice( $extraction['headlines'], 0, 5 ) as $headline ) : ?>
+                                <div class="extraction__item extraction__item--found">&#10003; <?php echo esc_html( $headline ); ?></div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
                     <div>
                         <div class="extraction__column-title extraction__column-title--missing">Missing</div>
@@ -159,12 +202,59 @@ get_header();
             </div>
             <?php endif; ?>
 
-            <!-- CTA -->
-            <div class="score-page__cta">
-                <a href="<?php echo esc_url( home_url( '/scanner/' ) ); ?>" class="btn btn--primary">Scan your own site &rarr;</a>
+            <!-- CTAs -->
+            <div class="scanner-results__ctas">
+                <div class="scanner-results__cta-primary">
+                    <a href="https://wordpress.org/plugins/answerenginewp/" class="btn btn--primary" target="_blank" rel="noopener">
+                        Fix this instantly &rarr; Install AnswerEngineWP (Free)
+                    </a>
+                </div>
+                <div class="scanner-results__cta-actions">
+                    <a href="<?php echo esc_url( rest_url( 'aewp/v1/report/' . $hash ) ); ?>" class="btn btn--outline" target="_blank" rel="noopener">Download PDF Report</a>
+                    <button type="button" class="btn btn--outline" id="shareScoreBtn" data-url="<?php echo esc_url( home_url( '/score/' . $hash ) ); ?>">Share Score</button>
+                    <?php if ( $score >= 70 ) : ?>
+                    <button type="button" class="btn btn--outline" id="copyBadgeBtn"
+                            data-snippet="<?php echo esc_attr( '<a href="' . home_url( '/score/' . $hash ) . '" title="AI Visibility Score: ' . $score . '/100 — ' . $tier['label'] . '" style="display:inline-block;text-decoration:none"><img src="' . rest_url( 'aewp/v1/badge/' . $hash . '.svg' ) . '" alt="AI Visibility Score: ' . $score . '/100" width="160" height="50"></a>' ); ?>">Copy Badge Snippet</button>
+                    <?php endif; ?>
+                </div>
+                <a href="<?php echo esc_url( home_url( '/scanner/' ) ); ?>" class="scanner-results__reset">&larr; Scan your own site</a>
             </div>
         </div>
     </div>
 </section>
+</main>
+
+<script>
+(function() {
+    var shareBtn = document.getElementById('shareScoreBtn');
+    if (shareBtn) {
+        shareBtn.addEventListener('click', function() {
+            var url = this.getAttribute('data-url');
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(function() {
+                    shareBtn.textContent = 'Link copied!';
+                    setTimeout(function() { shareBtn.textContent = 'Share Score'; }, 2000);
+                });
+            } else {
+                prompt('Copy this link:', url);
+            }
+        });
+    }
+    var badgeBtn = document.getElementById('copyBadgeBtn');
+    if (badgeBtn) {
+        badgeBtn.addEventListener('click', function() {
+            var snippet = this.getAttribute('data-snippet');
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(snippet).then(function() {
+                    badgeBtn.textContent = 'Copied!';
+                    setTimeout(function() { badgeBtn.textContent = 'Copy Badge Snippet'; }, 2000);
+                });
+            } else {
+                prompt('Copy this HTML:', snippet);
+            }
+        });
+    }
+})();
+</script>
 
 <?php get_footer(); ?>

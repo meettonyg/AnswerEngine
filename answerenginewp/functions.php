@@ -46,7 +46,7 @@ function aewp_scripts() {
         );
     }
 
-    if ( is_page_template( 'page-scanner.php' ) ) {
+    if ( is_page( 'scanner' ) || is_page_template( 'page-scanner.php' ) ) {
         wp_enqueue_script(
             'aewp-scanner',
             get_template_directory_uri() . '/assets/js/scanner.js',
@@ -177,7 +177,7 @@ function aewp_meta_tags() {
         echo '<meta name="twitter:title" content="Is your website invisible to ChatGPT?">' . "\n";
         echo '<meta name="twitter:description" content="Free AI Visibility Score for any website. Find out in 10 seconds.">' . "\n";
         echo '<meta name="twitter:image" content="https://answerenginewp.com/assets/images/og-image-1200x630.png">' . "\n";
-    } elseif ( is_page_template( 'page-scanner.php' ) ) {
+    } elseif ( is_page( 'scanner' ) || is_page_template( 'page-scanner.php' ) ) {
         echo '<meta name="description" content="Free AI Visibility Score for any website. Enter your URL and see what AI systems can extract from your site in under 10 seconds.">' . "\n";
         echo '<meta property="og:title" content="Is your website invisible to AI? Scan free. &middot; AnswerEngineWP">' . "\n";
         echo '<meta property="og:description" content="Enter any URL. Get your AI Visibility Score in under 10 seconds. Free, no login required.">' . "\n";

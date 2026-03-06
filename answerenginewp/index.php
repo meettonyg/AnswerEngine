@@ -8,6 +8,7 @@
 get_header();
 ?>
 
+<main>
 <div class="page-content">
     <div class="container">
         <?php if ( have_posts() ) : ?>
@@ -22,5 +23,6 @@ get_header();
         <?php endif; ?>
     </div>
 </div>
+</main>
 
 <?php get_footer(); ?>

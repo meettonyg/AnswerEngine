@@ -10,13 +10,13 @@
 
 <?php
 $nav_template = 'nav/nav-primary';
-if ( is_page_template( 'page-scanner.php' ) ) {
+if ( is_page( 'scanner' ) || is_page_template( 'page-scanner.php' ) ) {
     $nav_template = 'nav/nav-scanner';
 }
 get_template_part( 'template-parts/' . $nav_template );
 ?>
 
-<?php if ( ! is_front_page() && ! is_page_template( 'page-scanner.php' ) ) : ?>
+<?php if ( ! is_front_page() && ! is_page( 'scanner' ) || is_page_template( 'page-scanner.php' ) ) : ?>
 <script>
 (function() {
   var nav = document.getElementById('siteNav');
