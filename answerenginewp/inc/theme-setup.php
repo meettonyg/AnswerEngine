@@ -28,7 +28,7 @@ function answerenginewp_create_pages() {
     }
 
     // Set front page to static
-    $front = get_page_by_path( 'front-page' );
+    $front = get_page_by_path( 'home' );
     if ( ! $front ) {
         $front_id = wp_insert_post( array(
             'post_title'   => 'Home',
