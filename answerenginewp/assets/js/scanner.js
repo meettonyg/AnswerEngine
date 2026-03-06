@@ -73,6 +73,10 @@
     els.copyBadge    = document.getElementById('copyBadge');
     els.scanReset    = document.getElementById('scanReset');
     els.installCta   = document.getElementById('installCta');
+    els.emailInput   = document.getElementById('emailInput');
+    els.emailSubmit  = document.getElementById('emailSubmit');
+    els.emailSuccess = document.getElementById('emailSuccess');
+    els.emailCapture = document.getElementById('emailCapture');
   }
 
   // ---------------------------------------------------------------------------
@@ -293,6 +297,42 @@
       };
     } else {
       els.copyBadge.style.display = 'none';
+    }
+
+    // Email capture
+    if (els.emailSubmit && data.hash) {
+      els.emailSubmit.onclick = function () {
+        var email = els.emailInput ? els.emailInput.value.trim() : '';
+        if (!email || email.indexOf('@') === -1) {
+          els.emailInput.style.borderColor = '#EF4444';
+          return;
+        }
+        els.emailInput.style.borderColor = '';
+        els.emailSubmit.disabled = true;
+        els.emailSubmit.textContent = 'Sending…';
+
+        var emailUrl = API_URL.replace('/scan', '/email');
+        fetch(emailUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, hash: data.hash })
+        }).then(function (res) { return res.json(); })
+          .then(function (result) {
+            if (result.success) {
+              els.emailCapture.querySelector('.email-capture__form').style.display = 'none';
+              els.emailCapture.querySelector('.email-capture__note').style.display = 'none';
+              els.emailSuccess.style.display = '';
+              trackEvent('email_captured');
+            } else {
+              els.emailSubmit.disabled = false;
+              els.emailSubmit.textContent = 'Send Report';
+              els.emailInput.style.borderColor = '#EF4444';
+            }
+          }).catch(function () {
+            els.emailSubmit.disabled = false;
+            els.emailSubmit.textContent = 'Send Report';
+          });
+      };
     }
 
     showState('results');

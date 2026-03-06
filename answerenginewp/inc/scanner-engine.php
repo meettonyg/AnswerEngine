@@ -17,7 +17,7 @@
 function aewp_scan_url( $url ) {
     // Fetch the page
     $response = wp_remote_get( $url, array(
-        'timeout'    => 15,
+        'timeout'    => 8,
         'user-agent' => 'AnswerEngineWP Scanner/1.0 (+https://answerenginewp.com)',
         'sslverify'  => false,
     ) );
@@ -53,7 +53,7 @@ function aewp_scan_url( $url ) {
     $structure_data    = aewp_analyze_structure( $doc, $xpath );
     $faq_data          = aewp_analyze_faq( $doc, $xpath, $html );
     $summary_data      = aewp_analyze_summaries( $doc, $xpath );
-    $feed_data         = aewp_analyze_feeds( $domain_root );
+    $feed_data         = aewp_analyze_feeds( $domain_root, $xpath );
     $entity_data       = aewp_analyze_entities( $doc, $xpath );
 
     $sub_scores = array(
@@ -305,6 +305,13 @@ function aewp_analyze_faq( $doc, $xpath, $html ) {
         $count += $dts->length;
     }
 
+    // Check for common accordion/FAQ class patterns (Squarespace, Shopify, Wix, etc.)
+    $accordion_items = $xpath->query( '//*[contains(@class, "accordion") or contains(@class, "faq-item") or contains(@class, "faq__item") or contains(@role, "accordion")]' );
+    if ( $accordion_items->length > 0 ) {
+        $score += 10;
+        $count += $accordion_items->length;
+    }
+
     $score = min( 100, $score );
 
     return array(
@@ -383,55 +390,114 @@ function aewp_analyze_summaries( $doc, $xpath ) {
 
 /**
  * Analyze feed and manifest readiness
+ *
+ * Uses parallel HTTP requests via Requests::request_multiple() to check
+ * all feed URLs concurrently instead of sequentially, reducing worst-case
+ * from ~20s to ~3s.
  */
-function aewp_analyze_feeds( $domain_root ) {
+function aewp_analyze_feeds( $domain_root, $xpath = null ) {
     $score = 0;
 
-    // Check /llms.txt
-    $llms_txt = wp_remote_get( $domain_root . '/llms.txt', array(
-        'timeout'    => 5,
-        'sslverify'  => false,
-        'user-agent' => 'AnswerEngineWP Scanner/1.0',
-    ) );
-    if ( ! is_wp_error( $llms_txt ) && wp_remote_retrieve_response_code( $llms_txt ) === 200 ) {
-        $body = wp_remote_retrieve_body( $llms_txt );
-        if ( strlen( $body ) > 10 ) {
-            $score += 40;
+    // Discover RSS feed URL from <link> tags instead of assuming /feed/ (WordPress-only)
+    $rss_url = $domain_root . '/feed/';
+    if ( $xpath ) {
+        $feed_links = $xpath->query( '//link[@type="application/rss+xml"]/@href | //link[@type="application/atom+xml"]/@href' );
+        if ( $feed_links->length > 0 ) {
+            $discovered = $feed_links->item( 0 )->value;
+            if ( filter_var( $discovered, FILTER_VALIDATE_URL ) ) {
+                $rss_url = $discovered;
+            } elseif ( strpos( $discovered, '/' ) === 0 ) {
+                $rss_url = $domain_root . $discovered;
+            }
         }
     }
 
-    // Check /llms-full.json
-    $llms_json = wp_remote_get( $domain_root . '/llms-full.json', array(
-        'timeout'    => 5,
+    $urls = array(
+        'llms_txt'  => $domain_root . '/llms.txt',
+        'llms_json' => $domain_root . '/llms-full.json',
+        'rss'       => $rss_url,
+        'sitemap'   => $domain_root . '/sitemap.xml',
+    );
+
+    $shared_opts = array(
+        'timeout'    => 3,
         'sslverify'  => false,
         'user-agent' => 'AnswerEngineWP Scanner/1.0',
-    ) );
-    if ( ! is_wp_error( $llms_json ) && wp_remote_retrieve_response_code( $llms_json ) === 200 ) {
-        $body = wp_remote_retrieve_body( $llms_json );
-        $json = json_decode( $body, true );
-        if ( $json ) {
-            $score += 40;
+    );
+
+    // Try parallel requests via Requests library (bundled with WordPress)
+    if ( class_exists( 'WpOrg\Requests\Requests' ) || class_exists( 'Requests' ) ) {
+        $requests = array();
+        foreach ( $urls as $key => $url ) {
+            $requests[ $key ] = array(
+                'url'     => $url,
+                'type'    => 'GET',
+                'headers' => array( 'User-Agent' => $shared_opts['user-agent'] ),
+            );
         }
-    }
 
-    // Check RSS feed
-    $rss = wp_remote_get( $domain_root . '/feed/', array(
-        'timeout'    => 5,
-        'sslverify'  => false,
-        'user-agent' => 'AnswerEngineWP Scanner/1.0',
-    ) );
-    if ( ! is_wp_error( $rss ) && wp_remote_retrieve_response_code( $rss ) === 200 ) {
-        $score += 10;
-    }
+        $options = array(
+            'timeout'   => 3,
+            'verify'    => false,
+        );
 
-    // Check sitemap
-    $sitemap = wp_remote_get( $domain_root . '/sitemap.xml', array(
-        'timeout'    => 5,
-        'sslverify'  => false,
-        'user-agent' => 'AnswerEngineWP Scanner/1.0',
-    ) );
-    if ( ! is_wp_error( $sitemap ) && wp_remote_retrieve_response_code( $sitemap ) === 200 ) {
-        $score += 10;
+        $request_class = class_exists( 'WpOrg\Requests\Requests' ) ? 'WpOrg\Requests\Requests' : 'Requests';
+        $responses = $request_class::request_multiple( $requests, $options );
+
+        // Score llms.txt
+        if ( isset( $responses['llms_txt'] ) && ! ( $responses['llms_txt'] instanceof \WpOrg\Requests\Exception ) && ! ( $responses['llms_txt'] instanceof \Requests_Exception ) ) {
+            if ( $responses['llms_txt']->status_code === 200 && strlen( $responses['llms_txt']->body ) > 10 ) {
+                $score += 40;
+            }
+        }
+
+        // Score llms-full.json
+        if ( isset( $responses['llms_json'] ) && ! ( $responses['llms_json'] instanceof \WpOrg\Requests\Exception ) && ! ( $responses['llms_json'] instanceof \Requests_Exception ) ) {
+            if ( $responses['llms_json']->status_code === 200 ) {
+                $json = json_decode( $responses['llms_json']->body, true );
+                if ( $json ) {
+                    $score += 40;
+                }
+            }
+        }
+
+        // Score RSS
+        if ( isset( $responses['rss'] ) && ! ( $responses['rss'] instanceof \WpOrg\Requests\Exception ) && ! ( $responses['rss'] instanceof \Requests_Exception ) ) {
+            if ( $responses['rss']->status_code === 200 ) {
+                $score += 10;
+            }
+        }
+
+        // Score sitemap
+        if ( isset( $responses['sitemap'] ) && ! ( $responses['sitemap'] instanceof \WpOrg\Requests\Exception ) && ! ( $responses['sitemap'] instanceof \Requests_Exception ) ) {
+            if ( $responses['sitemap']->status_code === 200 ) {
+                $score += 10;
+            }
+        }
+    } else {
+        // Fallback: sequential requests with reduced timeout
+        foreach ( $urls as $key => $url ) {
+            $response = wp_remote_get( $url, $shared_opts );
+            if ( is_wp_error( $response ) || wp_remote_retrieve_response_code( $response ) !== 200 ) {
+                continue;
+            }
+            $body = wp_remote_retrieve_body( $response );
+
+            switch ( $key ) {
+                case 'llms_txt':
+                    if ( strlen( $body ) > 10 ) $score += 40;
+                    break;
+                case 'llms_json':
+                    if ( json_decode( $body, true ) ) $score += 40;
+                    break;
+                case 'rss':
+                    $score += 10;
+                    break;
+                case 'sitemap':
+                    $score += 10;
+                    break;
+            }
+        }
     }
 
     return array(

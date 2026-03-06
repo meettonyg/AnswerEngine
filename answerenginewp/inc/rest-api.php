@@ -53,6 +53,25 @@ function aewp_register_rest_routes() {
             ),
         ),
     ) );
+
+    // Email capture endpoint
+    register_rest_route( 'aewp/v1', '/email', array(
+        'methods'             => 'POST',
+        'callback'            => 'aewp_handle_email_capture',
+        'permission_callback' => '__return_true',
+        'args'                => array(
+            'email' => array(
+                'required'          => true,
+                'type'              => 'string',
+                'sanitize_callback' => 'sanitize_email',
+            ),
+            'hash' => array(
+                'required'          => true,
+                'type'              => 'string',
+                'sanitize_callback' => 'sanitize_text_field',
+            ),
+        ),
+    ) );
 }
 add_action( 'rest_api_init', 'aewp_register_rest_routes' );
 
@@ -236,4 +255,74 @@ function aewp_get_client_ip() {
         $ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
     }
     return $ip;
+}
+
+/**
+ * Handle email capture request.
+ *
+ * Stores email against the scan result and optionally
+ * triggers wp_mail with the PDF report link.
+ */
+function aewp_handle_email_capture( WP_REST_Request $request ) {
+    $email = $request->get_param( 'email' );
+    $hash  = $request->get_param( 'hash' );
+
+    if ( ! is_email( $email ) ) {
+        return new WP_REST_Response( array(
+            'success' => false,
+            'message' => 'Please enter a valid email address.',
+        ), 400 );
+    }
+
+    $scan = aewp_get_scan_by_hash( $hash );
+    if ( ! $scan ) {
+        return new WP_REST_Response( array(
+            'success' => false,
+            'message' => 'Scan not found.',
+        ), 404 );
+    }
+
+    // Store email (hashed for privacy, raw for sending)
+    update_post_meta( $scan->ID, '_aewp_email', sanitize_email( $email ) );
+    update_post_meta( $scan->ID, '_aewp_email_hash', md5( strtolower( trim( $email ) ) ) );
+
+    // Send report email
+    $url       = get_post_meta( $scan->ID, '_aewp_url', true );
+    $score     = intval( get_post_meta( $scan->ID, '_aewp_score', true ) );
+    $tier_data = aewp_get_tier( $score );
+    $fixes     = get_post_meta( $scan->ID, '_aewp_fixes', true );
+    $pdf_url   = rest_url( 'aewp/v1/report/' . $hash );
+    $score_url = home_url( '/score/' . $hash );
+
+    $subject = 'Your AI Visibility Report: ' . aewp_clean_url_for_display( $url ) . ' scored ' . $score . '/100';
+
+    $body  = "AI Visibility Audit Report\n";
+    $body .= "==========================\n\n";
+    $body .= "URL: " . $url . "\n";
+    $body .= "Score: " . $score . "/100 — " . $tier_data['label'] . "\n\n";
+    $body .= $tier_data['message'] . "\n\n";
+
+    if ( is_array( $fixes ) && ! empty( $fixes ) ) {
+        $body .= "Top 3 Recommended Fixes:\n";
+        foreach ( $fixes as $i => $fix ) {
+            if ( ! is_array( $fix ) ) continue;
+            $body .= ( $i + 1 ) . ". " . $fix['title'] . " (+" . $fix['points'] . " pts)\n";
+            $body .= "   " . $fix['description'] . "\n\n";
+        }
+    }
+
+    $body .= "Download your full PDF report:\n" . $pdf_url . "\n\n";
+    $body .= "View and share your score:\n" . $score_url . "\n\n";
+    $body .= "---\n";
+    $body .= "Fix your score in 60 seconds — install AnswerEngineWP (free):\n";
+    $body .= "https://wordpress.org/plugins/answerenginewp/\n";
+
+    $headers = array( 'Content-Type: text/plain; charset=UTF-8' );
+
+    wp_mail( $email, $subject, $body, $headers );
+
+    return new WP_REST_Response( array(
+        'success' => true,
+        'message' => 'Report sent to ' . $email,
+    ), 200 );
 }
