@@ -174,11 +174,22 @@
       headers['X-WP-Nonce'] = API_NONCE;
     }
 
-    return fetch(API_URL, {
+    var fetchOpts = {
       method: 'POST',
       headers: headers,
       body: JSON.stringify(body)
-    }).then(function (res) {
+    };
+
+    // 30s timeout via AbortController
+    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timeoutId = null;
+    if (controller) {
+      fetchOpts.signal = controller.signal;
+      timeoutId = setTimeout(function () { controller.abort(); }, 30000);
+    }
+
+    return fetch(API_URL, fetchOpts).then(function (res) {
+      if (timeoutId) clearTimeout(timeoutId);
       if (res.status === 429) {
         return res.json().then(function (data) {
           throw new Error('RATE_LIMITED:' + (data.retry_after || 60));
@@ -188,6 +199,12 @@
         throw new Error('API_ERROR:' + res.status);
       }
       return res.json();
+    }).catch(function (err) {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        throw new Error('TIMEOUT');
+      }
+      throw err;
     });
   }
 
@@ -498,6 +515,8 @@
         if (msg.indexOf('RATE_LIMITED') === 0) {
           var minutes = Math.ceil(parseInt(msg.split(':')[1], 10) / 60);
           showError("You've reached the scan limit. Try again in " + minutes + ' minutes.');
+        } else if (msg === 'TIMEOUT') {
+          showError('The scan timed out after 30 seconds. The site may be too slow to respond. Try again?');
         } else if (msg.indexOf('API_ERROR') === 0) {
           showError("We couldn't scan that URL. The site may be blocking our requests. Try a different URL.");
         } else {
