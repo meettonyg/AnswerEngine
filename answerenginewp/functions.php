@@ -130,6 +130,7 @@ function aewp_template_redirect() {
 add_action( 'template_redirect', 'aewp_template_redirect' );
 
 // Load includes
+require_once get_template_directory() . '/inc/theme-setup.php';
 require_once get_template_directory() . '/inc/rest-api.php';
 require_once get_template_directory() . '/inc/scanner-engine.php';
 require_once get_template_directory() . '/inc/pdf-generator.php';
