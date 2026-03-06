@@ -49,8 +49,9 @@ Text Domain: answerenginewp
   --section-pad:        120px;
   --section-pad-mobile: 72px;
   --container-max:      1200px;
+  --container-pad-mobile-h: 20px;
   --container-pad:      0 32px;
-  --container-pad-mobile: 0 20px;
+  --container-pad-mobile: 0 var(--container-pad-mobile-h);
 }
 
 /* ==========================================================================
@@ -450,8 +451,15 @@ h2 {
   display: none;
   background: none;
   border: none;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
   cursor: pointer;
-  padding: 8px;
+  padding: 0;
+  margin: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
   flex-direction: column;
   gap: 5px;
   z-index: 11;
@@ -1379,7 +1387,7 @@ h2 {
 
 .score-gauge__value {
   font-family: 'Instrument Serif', Georgia, serif;
-  font-size: 48px;
+  font-size: 36px;
   fill: var(--white);
   text-anchor: middle;
   dominant-baseline: middle;
@@ -1842,22 +1850,13 @@ h2 {
   }
 }
 
-@media (max-width: 640px) {
-  :root {
-    --section-pad: var(--section-pad-mobile);
-    --container-pad: var(--container-pad-mobile);
-  }
-
-  .hero {
-    padding: 120px 0 72px;
-  }
-
-  .hero-scanner__input-wrap {
-    flex-direction: column;
-  }
-
+@media (max-width: 768px) {
   .site-nav__toggle {
     display: flex;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    padding: 8px;
   }
 
   .site-nav__links {
@@ -1879,13 +1878,28 @@ h2 {
   }
 
   .site-nav__link {
-    padding: 14px var(--container-pad-mobile, 20px);
+    padding: 14px var(--container-pad-mobile-h);
     font-size: 16px;
   }
 
   .site-nav__link.btn--nav {
-    margin: 8px var(--container-pad-mobile, 20px);
+    margin: 8px var(--container-pad-mobile-h);
     text-align: center;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --section-pad: var(--section-pad-mobile);
+    --container-pad: var(--container-pad-mobile);
+  }
+
+  .hero {
+    padding: 120px 0 72px;
+  }
+
+  .hero-scanner__input-wrap {
+    flex-direction: column;
   }
 
   .how-it-works__grid {
