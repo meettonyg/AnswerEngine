@@ -1,8 +1,8 @@
 <?php return array(
     'root' => array(
         'name' => 'answerenginewp/theme',
-        'pretty_version' => 'dev-master',
-        'version' => 'dev-master',
+        'pretty_version' => 'dev-main',
+        'version' => 'dev-main',
         'reference' => 'df8b6dd7761215946e6e08c105ee79640636916d',
         'type' => 'wordpress-theme',
         'install_path' => __DIR__ . '/../../',
@@ -11,8 +11,8 @@
     ),
     'versions' => array(
         'answerenginewp/theme' => array(
-            'pretty_version' => 'dev-master',
-            'version' => 'dev-master',
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
             'reference' => 'df8b6dd7761215946e6e08c105ee79640636916d',
             'type' => 'wordpress-theme',
             'install_path' => __DIR__ . '/../../',
