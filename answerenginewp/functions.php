@@ -62,6 +62,7 @@ function aewp_scripts() {
             'emailUrl'   => rest_url( 'aewp/v1/email' ),
             'nonce'      => wp_create_nonce( 'wp_rest' ),
             'siteUrl'    => home_url(),
+            'tierConfig' => aewp_get_tier_config_for_js(),
         ) );
     }
 
@@ -118,11 +119,16 @@ function aewp_register_scan_results() {
 }
 add_action( 'init', 'aewp_register_scan_results' );
 
-// Custom rewrite rules for /score/{hash} URLs
+// Custom rewrite rules for /score/{hash} and /leaderboard/ URLs
 function aewp_rewrite_rules() {
     add_rewrite_rule(
         '^score/([a-zA-Z0-9]+)/?$',
         'index.php?aewp_score_hash=$1',
+        'top'
+    );
+    add_rewrite_rule(
+        '^leaderboard/?$',
+        'index.php?aewp_leaderboard=1',
         'top'
     );
 }
@@ -130,6 +136,7 @@ add_action( 'init', 'aewp_rewrite_rules' );
 
 function aewp_query_vars( $vars ) {
     $vars[] = 'aewp_score_hash';
+    $vars[] = 'aewp_leaderboard';
     return $vars;
 }
 add_filter( 'query_vars', 'aewp_query_vars' );
@@ -140,10 +147,16 @@ function aewp_template_redirect() {
         include get_template_directory() . '/page-score-result.php';
         exit;
     }
+    if ( get_query_var( 'aewp_leaderboard' ) ) {
+        include get_template_directory() . '/page-leaderboard.php';
+        exit;
+    }
 }
 add_action( 'template_redirect', 'aewp_template_redirect' );
 
 // Load includes
+require_once get_template_directory() . '/inc/score-tiers.php';
+require_once get_template_directory() . '/inc/visual-utils.php';
 require_once get_template_directory() . '/inc/theme-setup.php';
 require_once get_template_directory() . '/inc/rest-api.php';
 require_once get_template_directory() . '/inc/scanner-engine.php';
@@ -151,6 +164,9 @@ require_once get_template_directory() . '/inc/pdf-generator.php';
 require_once get_template_directory() . '/inc/badge-generator.php';
 require_once get_template_directory() . '/inc/og-image-generator.php';
 require_once get_template_directory() . '/inc/rate-limiter.php';
+require_once get_template_directory() . '/inc/comparison-renderer.php';
+require_once get_template_directory() . '/inc/leaderboard.php';
+require_once get_template_directory() . '/inc/leaderboard-graphic.php';
 
 // JSON-LD for homepage
 function aewp_homepage_jsonld() {
@@ -231,46 +247,3 @@ function aewp_get_scan_by_hash( $hash ) {
     return ! empty( $scans ) ? $scans[0] : null;
 }
 
-/**
- * Get tier data from score
- */
-function aewp_get_tier( $score ) {
-    $score = intval( $score );
-    if ( $score >= 90 ) {
-        return array(
-            'key'     => 'authority',
-            'label'   => 'AI Authority',
-            'color'   => '#22C55E',
-            'css_var' => '--tier-green',
-            'class'   => 'tier-green',
-            'message' => 'Your site is fully optimized for AI extraction and citation. AI systems treat your content as a trusted, authoritative source. You are an AI authority in your space.',
-        );
-    } elseif ( $score >= 70 ) {
-        return array(
-            'key'     => 'extractable',
-            'label'   => 'AI Extractable',
-            'color'   => '#3B82F6',
-            'css_var' => '--tier-blue',
-            'class'   => 'tier-blue',
-            'message' => 'AI systems can extract and structure your content effectively. You\'re close to becoming a preferred citation source — a few structural improvements separate you from authority status.',
-        );
-    } elseif ( $score >= 40 ) {
-        return array(
-            'key'     => 'readable',
-            'label'   => 'AI Readable',
-            'color'   => '#EAB308',
-            'css_var' => '--tier-amber',
-            'class'   => 'tier-amber',
-            'message' => 'AI systems can find your content, but they\'re choosing better-structured competitors to cite. You\'re in the room — but you\'re not being quoted.',
-        );
-    } else {
-        return array(
-            'key'     => 'invisible',
-            'label'   => 'Invisible to AI',
-            'color'   => '#EF4444',
-            'css_var' => '--tier-red',
-            'class'   => 'tier-red',
-            'message' => 'ChatGPT cannot reliably extract or cite your site. Better-structured competitors are more likely to be cited while your content goes unread by the systems your audience increasingly trusts.',
-        );
-    }
-}

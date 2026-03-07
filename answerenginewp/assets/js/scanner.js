@@ -29,12 +29,23 @@
   var MIN_LOADING_MS = 4000;
   var STATUS_INTERVAL_MS = 1500;
 
-  var TIER_COLORS = {
-    invisible: '#EF4444',
-    readable: '#EAB308',
-    extractable: '#3B82F6',
-    authority: '#22C55E'
-  };
+  var TIER_CONFIG = (typeof aewpScanner !== 'undefined' && aewpScanner.tierConfig) ? aewpScanner.tierConfig : [
+    { min: 90, key: 'authority', label: 'AI Authority', color: '#22C55E', class: 'tier-green' },
+    { min: 70, key: 'extractable', label: 'AI Extractable', color: '#3B82F6', class: 'tier-blue' },
+    { min: 40, key: 'readable', label: 'AI Readable', color: '#EAB308', class: 'tier-amber' },
+    { min: 0, key: 'invisible', label: 'Invisible to AI', color: '#EF4444', class: 'tier-red' }
+  ];
+
+  function getTierForScore(score) {
+    for (var i = 0; i < TIER_CONFIG.length; i++) {
+      if (score >= TIER_CONFIG[i].min) return TIER_CONFIG[i];
+    }
+    return TIER_CONFIG[TIER_CONFIG.length - 1];
+  }
+
+  // Legacy lookup by key for backwards compatibility with API responses.
+  var TIER_COLORS = {};
+  TIER_CONFIG.forEach(function(t) { TIER_COLORS[t.key] = t.color; });
 
   // ---------------------------------------------------------------------------
   // DOM refs
@@ -278,15 +289,15 @@
       };
     }
 
-    // Badge snippet
-    if (data.score >= 70 && data.hash) {
+    // Badge snippet — available for all scores.
+    if (data.hash) {
       els.copyBadge.style.display = '';
       els.copyBadge.onclick = function () {
         trackEvent('badge_copied');
         var snippet = '<a href="' + SITE_URL + '/score/' + data.hash + '" title="AI Visibility Score: ' +
           data.score + '/100 — ' + data.tier_label + '" style="display:inline-block;text-decoration:none">' +
-          '<img src="' + SITE_URL + '/wp-json/aewp/v1/badge/' + data.hash + '.svg" alt="AI Visibility Score: ' +
-          data.score + '/100" width="160" height="50"></a>';
+          '<img src="' + SITE_URL + '/wp-json/aewp/v1/badge/' + data.hash + '.svg?variant=small" alt="AI Visibility Score: ' +
+          data.score + '/100" width="220" height="60"></a>';
         if (navigator.clipboard) {
           navigator.clipboard.writeText(snippet).then(function () {
             els.copyBadge.textContent = 'Copied!';
@@ -361,10 +372,7 @@
   }
 
   function getSubScoreColor(score) {
-    if (score >= 90) return '#22C55E';
-    if (score >= 70) return '#3B82F6';
-    if (score >= 40) return '#EAB308';
-    return '#EF4444';
+    return getTierForScore(score).color;
   }
 
   function renderFixes(fixes, projectedScore) {
@@ -420,6 +428,14 @@
     els.compTheirUrl.textContent = competitor.url || 'Competitor';
 
     var subKeys = ['schema_completeness', 'content_structure', 'faq_coverage', 'summary_presence', 'feed_readiness', 'entity_density'];
+
+    // Render bar chart comparison above the table.
+    var barsContainer = document.getElementById('comparisonBars');
+    if (barsContainer) {
+      barsContainer.innerHTML = renderComparisonBars(data, competitor, subKeys);
+    }
+
+    // Keep the table as detail view.
     var html = '<tr><td><strong>Overall Score</strong></td>' +
       '<td class="score-cell" style="color:' + (data.tier_color || '#EF4444') + '">' + data.score + '</td>' +
       '<td class="score-cell" style="color:' + (TIER_COLORS[competitor.tier] || '#EF4444') + '">' + competitor.score + '</td></tr>';
@@ -434,6 +450,45 @@
     });
 
     els.compTableBody.innerHTML = html;
+  }
+
+  function renderComparisonBars(data, competitor, subKeys) {
+    var rows = [{ label: 'Overall Score', yours: data.score, theirs: competitor.score }];
+    subKeys.forEach(function (key) {
+      var yours = data.sub_scores[key];
+      var theirs = competitor.sub_scores ? competitor.sub_scores[key] : null;
+      if (!yours) return;
+      rows.push({
+        label: yours.label,
+        yours: yours.score,
+        theirs: theirs ? theirs.score : 0
+      });
+    });
+
+    var html = `<div class="comparison-chart">
+      <div class="comparison-chart__legend">
+        <span class="comparison-chart__legend-item"><span class="comparison-chart__legend-dot" style="background:#2563EB"></span>${escapeHtml(data.url || 'Your Site')}</span>
+        <span class="comparison-chart__legend-item"><span class="comparison-chart__legend-dot" style="background:#64748B"></span>${escapeHtml(competitor.url || 'Competitor')}</span>
+      </div>`;
+
+    rows.forEach(function (row) {
+      var delta = row.yours - row.theirs;
+      var deltaStr = delta > 0 ? '+' + delta : '' + delta;
+      var deltaClass = delta > 0 ? 'comparison-row__delta--positive' : (delta < 0 ? 'comparison-row__delta--negative' : 'comparison-row__delta--neutral');
+      var tint = delta < 0 ? 'background:rgba(239,68,68,0.05)' : (delta > 0 ? 'background:rgba(34,197,94,0.05)' : '');
+
+      html += `<div class="comparison-row" style="${tint}">
+        <div class="comparison-row__label">${escapeHtml(row.label)}</div>
+        <div class="comparison-row__bars">
+          <div class="comparison-row__bar-group"><div class="comparison-row__bar-track"><div class="comparison-row__bar-fill comparison-row__bar-fill--yours" style="width:${row.yours}%"></div></div><span class="comparison-row__bar-value">${row.yours}</span></div>
+          <div class="comparison-row__bar-group"><div class="comparison-row__bar-track"><div class="comparison-row__bar-fill comparison-row__bar-fill--comp" style="width:${row.theirs}%"></div></div><span class="comparison-row__bar-value">${row.theirs}</span></div>
+        </div>
+        <div class="comparison-row__delta ${deltaClass}">${deltaStr}</div>
+      </div>`;
+    });
+
+    html += '</div>';
+    return html;
   }
 
   function renderExtraction(extraction) {

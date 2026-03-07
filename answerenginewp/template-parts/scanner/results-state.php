@@ -46,6 +46,7 @@
         <!-- Competitor Gap -->
         <div class="competitor-gap" id="competitorGap" style="display:none">
             <h3 class="competitor-gap__title">Competitor Structure Gap</h3>
+            <div id="comparisonBars"></div>
             <table class="competitor-gap__table">
                 <thead>
                     <tr>

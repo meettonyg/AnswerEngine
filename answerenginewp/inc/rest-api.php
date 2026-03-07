@@ -54,6 +54,34 @@ function aewp_register_rest_routes() {
         ),
     ) );
 
+    // Comparison SVG endpoint
+    register_rest_route( 'aewp/v1', '/score/(?P<hash>[a-zA-Z0-9]+)/comparison\.svg', array(
+        'methods'             => 'GET',
+        'callback'            => 'aewp_handle_comparison_svg',
+        'permission_callback' => '__return_true',
+        'args'                => array(
+            'hash' => array(
+                'required' => true,
+                'type'     => 'string',
+                'sanitize_callback' => 'sanitize_text_field',
+            ),
+        ),
+    ) );
+
+    // Leaderboard endpoint
+    register_rest_route( 'aewp/v1', '/leaderboard', array(
+        'methods'             => 'GET',
+        'callback'            => 'aewp_handle_leaderboard',
+        'permission_callback' => '__return_true',
+    ) );
+
+    // Leaderboard graphic endpoint
+    register_rest_route( 'aewp/v1', '/leaderboard/graphic', array(
+        'methods'             => 'GET',
+        'callback'            => 'aewp_handle_leaderboard_graphic',
+        'permission_callback' => '__return_true',
+    ) );
+
     // Email capture endpoint
     register_rest_route( 'aewp/v1', '/email', array(
         'methods'             => 'POST',
@@ -152,6 +180,14 @@ function aewp_handle_scan( WP_REST_Request $request ) {
         update_post_meta( $post_id, '_aewp_scanned_at', current_time( 'mysql' ) );
         update_post_meta( $post_id, '_aewp_ip_hash', md5( aewp_get_client_ip() . AUTH_SALT ) );
 
+        // Detect rescan — store before/after data for improvement tracking.
+        $previous_scan = aewp_get_previous_scan_for_url( $url, $post_id );
+        if ( $previous_scan ) {
+            $before_score = intval( get_post_meta( $previous_scan->ID, '_aewp_score', true ) );
+            update_post_meta( $post_id, '_aewp_before_score', $before_score );
+            update_post_meta( $post_id, '_aewp_before_tier', get_post_meta( $previous_scan->ID, '_aewp_tier', true ) );
+        }
+
         if ( $competitor_data ) {
             update_post_meta( $post_id, '_aewp_competitor_url', $competitor_url );
             update_post_meta( $post_id, '_aewp_competitor_score', $competitor_data['score'] );
@@ -162,10 +198,15 @@ function aewp_handle_scan( WP_REST_Request $request ) {
     // Build response
     $tier_data = aewp_get_tier( $result['score'] );
 
+    $domain = aewp_format_domain( $url );
+
     $response = array(
         'success'            => true,
+        'scan_id'            => $post_id ? (string) $post_id : null,
         'hash'               => $hash,
         'url'                => aewp_clean_url_for_display( $url ),
+        'domain'             => $domain,
+        'scan_timestamp'     => gmdate( 'c' ),
         'score'              => $result['score'],
         'tier'               => $tier_data['key'],
         'tier_label'         => $tier_data['label'],
@@ -177,8 +218,11 @@ function aewp_handle_scan( WP_REST_Request $request ) {
         'extraction'         => $result['extraction'],
         'citation_simulation' => $result['citation_simulation'],
         'competitor'         => $competitor_data,
+        'is_public'          => true,
         'share_url'          => home_url( '/score/' . $hash ),
+        'public_url'         => home_url( '/score/' . $hash ),
         'pdf_url'            => rest_url( 'aewp/v1/report/' . $hash ),
+        'badge_url'          => rest_url( 'aewp/v1/badge/' . $hash . '.svg' ),
     );
 
     // Cache for 24 hours
@@ -213,7 +257,9 @@ function aewp_handle_report( WP_REST_Request $request ) {
 }
 
 /**
- * Handle badge SVG request
+ * Handle badge SVG request.
+ *
+ * Supports variant query param: inline (default), social, small.
  */
 function aewp_handle_badge( WP_REST_Request $request ) {
     $hash = $request->get_param( 'hash' );
@@ -223,11 +269,19 @@ function aewp_handle_badge( WP_REST_Request $request ) {
         return new WP_REST_Response( array( 'message' => 'Scan not found.' ), 404 );
     }
 
-    $score = intval( get_post_meta( $scan->ID, '_aewp_score', true ) );
-    if ( $score < 70 ) {
-        return new WP_REST_Response( array( 'message' => 'Badges are available for scores of 70 or above.' ), 403 );
+    $score   = intval( get_post_meta( $scan->ID, '_aewp_score', true ) );
+    $url     = get_post_meta( $scan->ID, '_aewp_url', true );
+    $variant = isset( $_GET['variant'] ) ? sanitize_text_field( $_GET['variant'] ) : 'inline';
+
+    $allowed_variants = array( 'inline', 'social', 'small' );
+    if ( ! in_array( $variant, $allowed_variants, true ) ) {
+        $variant = 'inline';
     }
-    $svg = aewp_generate_badge_svg( $score );
+
+    $svg = aewp_generate_badge_svg( array(
+        'score' => $score,
+        'url'   => $url,
+    ), $variant );
 
     header( 'Content-Type: image/svg+xml' );
     header( 'Cache-Control: public, max-age=86400' );
@@ -255,6 +309,30 @@ function aewp_get_client_ip() {
         $ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
     }
     return $ip;
+}
+
+/**
+ * Get previous scan for a URL (for before/after comparison).
+ *
+ * @param string $url     The scanned URL.
+ * @param int    $exclude Post ID to exclude (current scan).
+ * @return WP_Post|null Previous scan post or null.
+ */
+function aewp_get_previous_scan_for_url( $url, $exclude = 0 ) {
+    $args = array(
+        'post_type'   => 'aewp_scan',
+        'meta_key'    => '_aewp_url',
+        'meta_value'  => $url,
+        'numberposts' => 1,
+        'orderby'     => 'date',
+        'order'       => 'DESC',
+        'post_status' => 'publish',
+    );
+    if ( $exclude ) {
+        $args['post__not_in'] = array( $exclude );
+    }
+    $scans = get_posts( $args );
+    return ! empty( $scans ) ? $scans[0] : null;
 }
 
 /**
@@ -326,4 +404,79 @@ function aewp_handle_email_capture( WP_REST_Request $request ) {
         'success' => true,
         'message' => 'Report sent to ' . $email,
     ), 200 );
+}
+
+/**
+ * Handle comparison SVG request.
+ */
+function aewp_handle_comparison_svg( WP_REST_Request $request ) {
+    $hash = $request->get_param( 'hash' );
+    $scan = aewp_get_scan_by_hash( $hash );
+
+    if ( ! $scan ) {
+        return new WP_REST_Response( array( 'message' => 'Scan not found.' ), 404 );
+    }
+
+    $competitor = get_post_meta( $scan->ID, '_aewp_competitor_data', true );
+    if ( empty( $competitor ) || ! is_array( $competitor ) ) {
+        return new WP_REST_Response( array( 'message' => 'No competitor data for this scan.' ), 404 );
+    }
+
+    $score      = intval( get_post_meta( $scan->ID, '_aewp_score', true ) );
+    $url        = get_post_meta( $scan->ID, '_aewp_url', true );
+    $sub_scores = get_post_meta( $scan->ID, '_aewp_sub_scores', true );
+
+    $svg = aewp_generate_comparison_svg(
+        array( 'score' => $score, 'sub_scores' => $sub_scores ),
+        $competitor,
+        aewp_format_domain( $url ),
+        isset( $competitor['url'] ) ? $competitor['url'] : 'Competitor'
+    );
+
+    header( 'Content-Type: image/svg+xml' );
+    header( 'Cache-Control: public, max-age=86400' );
+    echo $svg;
+    exit;
+}
+
+/**
+ * Handle leaderboard JSON request.
+ */
+function aewp_handle_leaderboard( WP_REST_Request $request ) {
+    $segment = isset( $_GET['segment'] ) ? sanitize_text_field( $_GET['segment'] ) : '';
+    $limit   = isset( $_GET['limit'] ) ? min( 100, max( 1, intval( $_GET['limit'] ) ) ) : 20;
+
+    $entries = aewp_get_leaderboard( $segment, $limit );
+
+    $title = $segment
+        ? 'Top ' . count( $entries ) . ' ' . ucfirst( $segment ) . ' Sites by AI Visibility'
+        : 'Top ' . count( $entries ) . ' Sites by AI Visibility';
+
+    return new WP_REST_Response( array(
+        'title'   => $title,
+        'segment' => $segment,
+        'entries' => $entries,
+    ), 200 );
+}
+
+/**
+ * Handle leaderboard graphic SVG request.
+ */
+function aewp_handle_leaderboard_graphic( WP_REST_Request $request ) {
+    $variant = isset( $_GET['variant'] ) ? sanitize_text_field( $_GET['variant'] ) : 'social';
+    $limit   = isset( $_GET['limit'] ) ? min( 50, max( 1, intval( $_GET['limit'] ) ) ) : 10;
+    $segment = isset( $_GET['segment'] ) ? sanitize_text_field( $_GET['segment'] ) : '';
+
+    $entries = aewp_get_leaderboard( $segment, $limit );
+
+    $title = $segment
+        ? 'Top ' . count( $entries ) . ' ' . ucfirst( $segment ) . ' Sites by AI Visibility'
+        : 'Top ' . count( $entries ) . ' Sites by AI Visibility';
+
+    $svg = aewp_generate_leaderboard_svg( $entries, $title, $variant );
+
+    header( 'Content-Type: image/svg+xml' );
+    header( 'Cache-Control: public, max-age=3600' );
+    echo $svg;
+    exit;
 }
