@@ -3,7 +3,7 @@
  * Leaderboard Data Model
  *
  * Queries scan results to produce ranked leaderboards.
- * No new CPT — uses existing aewp_scan posts.
+ * Uses a $wpdb query with GROUP BY for efficient deduplication at the DB level.
  *
  * @package AnswerEngineWP
  */
@@ -11,80 +11,69 @@
 /**
  * Get leaderboard entries ranked by score.
  *
- * Deduplicates by domain (keeps highest-scoring scan per domain).
- * Tie-breaks alphabetically by domain.
+ * Deduplicates by URL (keeps highest-scoring scan per URL)
+ * using a database-level GROUP BY query for performance.
+ * Tie-breaks alphabetically by URL.
  *
  * @param string $segment Optional segment/category filter (stored in post meta _aewp_segment).
  * @param int    $limit   Max entries to return.
- * @return array Array of entries: [ {rank, domain, score, tier_label} ]
+ * @return array Array of entries: [ {rank, domain, score, tier_label, tier_color} ]
  */
 function aewp_get_leaderboard( $segment = '', $limit = 20 ) {
-	$meta_query = array();
+	global $wpdb;
 
+	$limit = max( 1, min( 100, intval( $limit ) ) );
+
+	$segment_where = '';
 	if ( ! empty( $segment ) ) {
-		$meta_query[] = array(
-			'key'   => '_aewp_segment',
-			'value' => sanitize_text_field( $segment ),
+		$segment_where = $wpdb->prepare(
+			"AND EXISTS (
+				SELECT 1 FROM {$wpdb->postmeta} seg
+				WHERE seg.post_id = p.ID AND seg.meta_key = '_aewp_segment' AND seg.meta_value = %s
+			)",
+			sanitize_text_field( $segment )
 		);
 	}
 
-	$args = array(
-		'post_type'   => 'aewp_scan',
-		'post_status' => 'publish',
-		'numberposts' => 500, // Fetch a batch, then deduplicate.
-		'meta_key'    => '_aewp_score',
-		'orderby'     => 'meta_value_num',
-		'order'       => 'DESC',
+	// Get the max score per URL directly in SQL, avoiding fetching hundreds of posts into PHP.
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $segment_where is already prepared.
+	$sql = $wpdb->prepare(
+		"SELECT url_meta.meta_value AS url, MAX(CAST(score_meta.meta_value AS UNSIGNED)) AS score
+		FROM {$wpdb->posts} p
+		INNER JOIN {$wpdb->postmeta} url_meta ON p.ID = url_meta.post_id AND url_meta.meta_key = '_aewp_url'
+		INNER JOIN {$wpdb->postmeta} score_meta ON p.ID = score_meta.post_id AND score_meta.meta_key = '_aewp_score'
+		WHERE p.post_type = 'aewp_scan' AND p.post_status = 'publish'
+		{$segment_where}
+		GROUP BY url_meta.meta_value
+		ORDER BY score DESC, url_meta.meta_value ASC
+		LIMIT %d",
+		$limit
 	);
+	// phpcs:enable
 
-	if ( ! empty( $meta_query ) ) {
-		$args['meta_query'] = $meta_query;
+	$results = $wpdb->get_results( $sql );
+
+	if ( empty( $results ) ) {
+		return array();
 	}
 
-	$scans = get_posts( $args );
-
-	// Deduplicate by domain — keep the highest score per domain.
-	$by_domain = array();
-	foreach ( $scans as $scan ) {
-		$url    = get_post_meta( $scan->ID, '_aewp_url', true );
-		$score  = intval( get_post_meta( $scan->ID, '_aewp_score', true ) );
-		$domain = aewp_format_domain( $url );
-
+	$entries = array();
+	$rank = 0;
+	foreach ( $results as $row ) {
+		$domain = aewp_format_domain( $row->url );
 		if ( empty( $domain ) ) {
 			continue;
 		}
-
-		$domain_key = strtolower( $domain );
-
-		if ( ! isset( $by_domain[ $domain_key ] ) || $score > $by_domain[ $domain_key ]['score'] ) {
-			$tier = aewp_get_tier( $score );
-			$by_domain[ $domain_key ] = array(
-				'domain'     => $domain,
-				'score'      => $score,
-				'tier_label' => $tier['label'],
-				'tier_color' => $tier['color'],
-			);
-		}
-	}
-
-	// Sort descending by score, then alphabetically by domain.
-	uasort( $by_domain, function( $a, $b ) {
-		if ( $a['score'] === $b['score'] ) {
-			return strcmp( $a['domain'], $b['domain'] );
-		}
-		return $b['score'] - $a['score'];
-	} );
-
-	// Apply limit and assign ranks.
-	$entries = array();
-	$rank = 0;
-	foreach ( $by_domain as $entry ) {
 		$rank++;
-		if ( $rank > $limit ) {
-			break;
-		}
-		$entry['rank'] = $rank;
-		$entries[] = $entry;
+		$score = intval( $row->score );
+		$tier  = aewp_get_tier( $score );
+		$entries[] = array(
+			'rank'       => $rank,
+			'domain'     => $domain,
+			'score'      => $score,
+			'tier_label' => $tier['label'],
+			'tier_color' => $tier['color'],
+		);
 	}
 
 	return $entries;

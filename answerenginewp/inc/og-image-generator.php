@@ -2,9 +2,9 @@
 /**
  * OG Image Generator
  *
- * Generates 1200x630 PNG images for social sharing.
- * Uses the social card SVG badge rendered to HTML, then rasterized via Dompdf
- * or PHP GD fallback.
+ * Generates 1200x630 PNG images for social sharing using PHP GD.
+ * Also saves an SVG version of the social card alongside the PNG
+ * for platforms that support SVG OG images.
  *
  * @package AnswerEngineWP
  */
@@ -29,23 +29,6 @@ function aewp_generate_og_image( $scan ) {
 
 	$file_path = $og_dir . '/' . $hash . '.png';
 
-	// Generate the social card SVG.
-	$svg = aewp_generate_badge_svg( array(
-		'score' => $score,
-		'url'   => $url,
-	), 'social' );
-
-	// Try Dompdf rasterization first.
-	$autoload = get_template_directory() . '/vendor/autoload.php';
-	if ( file_exists( $autoload ) ) {
-		require_once $autoload;
-		$result = aewp_rasterize_svg_via_dompdf( $svg, $file_path );
-		if ( $result ) {
-			return $upload_dir['baseurl'] . '/aewp-og/' . $hash . '.png';
-		}
-	}
-
-	// Fallback: GD-based rendering.
 	$result = aewp_rasterize_og_gd( $score, $url, $tier, $file_path );
 	if ( is_wp_error( $result ) ) {
 		return $result;
@@ -55,68 +38,12 @@ function aewp_generate_og_image( $scan ) {
 }
 
 /**
- * Rasterize SVG to PNG via Dompdf.
- *
- * Embeds the SVG in an HTML document and renders to image.
- *
- * @param string $svg       SVG markup.
- * @param string $file_path Output file path.
- * @return bool True on success.
- */
-function aewp_rasterize_svg_via_dompdf( $svg, $file_path ) {
-	try {
-		$html = '<!DOCTYPE html><html><head><meta charset="UTF-8">
-		<style>
-			@page { size: 1200px 630px; margin: 0; }
-			body { margin: 0; padding: 0; width: 1200px; height: 630px; overflow: hidden; }
-			svg { display: block; }
-		</style></head><body>' . $svg . '</body></html>';
-
-		$options = new \Dompdf\Options();
-		$options->set( 'isHtml5ParserEnabled', true );
-		$options->set( 'isRemoteEnabled', false );
-		$options->set( 'defaultFont', 'Helvetica' );
-
-		$dompdf = new \Dompdf\Dompdf( $options );
-		$dompdf->loadHtml( $html );
-		$dompdf->setPaper( array( 0, 0, 1200, 630 ) );
-		$dompdf->render();
-
-		file_put_contents( $file_path, $dompdf->output() );
-
-		// Dompdf outputs PDF, not PNG. Save the SVG directly instead.
-		// The SVG file can serve as the OG image in many contexts.
-		$svg_path = str_replace( '.png', '.svg', $file_path );
-		file_put_contents( $svg_path, $svg );
-
-		// Use GD to create actual PNG from the design.
-		return aewp_svg_design_to_png( $file_path );
-	} catch ( Exception $e ) {
-		return false;
-	}
-}
-
-/**
- * Create a high-quality PNG from the social card design using GD.
- *
- * This is an improved version that uses proper layout instead of crude pixel fonts.
- *
- * @param string $file_path Output file path.
- * @return bool True on success.
- */
-function aewp_svg_design_to_png( $file_path ) {
-	// This is a placeholder — the SVG file generated alongside is the preferred asset.
-	// Many social platforms accept SVG OG images, and the SVG file is already generated.
-	return false;
-}
-
-/**
- * Improved GD fallback for OG image generation.
+ * Generate OG image as PNG using GD, plus an SVG social card alongside.
  *
  * @param int    $score     Score 0-100.
  * @param string $url       Scanned URL.
  * @param array  $tier      Tier data.
- * @param string $file_path Output path.
+ * @param string $file_path Output path for PNG.
  * @return true|WP_Error
  */
 function aewp_rasterize_og_gd( $score, $url, $tier, $file_path ) {

@@ -465,11 +465,11 @@
       });
     });
 
-    var html = '<div class="comparison-chart">';
-    html += '<div class="comparison-chart__legend">';
-    html += '<span class="comparison-chart__legend-item"><span class="comparison-chart__legend-dot" style="background:#2563EB"></span>' + escapeHtml(data.url || 'Your Site') + '</span>';
-    html += '<span class="comparison-chart__legend-item"><span class="comparison-chart__legend-dot" style="background:#64748B"></span>' + escapeHtml(competitor.url || 'Competitor') + '</span>';
-    html += '</div>';
+    var html = `<div class="comparison-chart">
+      <div class="comparison-chart__legend">
+        <span class="comparison-chart__legend-item"><span class="comparison-chart__legend-dot" style="background:#2563EB"></span>${escapeHtml(data.url || 'Your Site')}</span>
+        <span class="comparison-chart__legend-item"><span class="comparison-chart__legend-dot" style="background:#64748B"></span>${escapeHtml(competitor.url || 'Competitor')}</span>
+      </div>`;
 
     rows.forEach(function (row) {
       var delta = row.yours - row.theirs;
@@ -477,14 +477,14 @@
       var deltaClass = delta > 0 ? 'comparison-row__delta--positive' : (delta < 0 ? 'comparison-row__delta--negative' : 'comparison-row__delta--neutral');
       var tint = delta < 0 ? 'background:rgba(239,68,68,0.05)' : (delta > 0 ? 'background:rgba(34,197,94,0.05)' : '');
 
-      html += '<div class="comparison-row" style="' + tint + '">';
-      html += '<div class="comparison-row__label">' + escapeHtml(row.label) + '</div>';
-      html += '<div class="comparison-row__bars">';
-      html += '<div class="comparison-row__bar-group"><div class="comparison-row__bar-track"><div class="comparison-row__bar-fill comparison-row__bar-fill--yours" style="width:' + row.yours + '%"></div></div><span class="comparison-row__bar-value">' + row.yours + '</span></div>';
-      html += '<div class="comparison-row__bar-group"><div class="comparison-row__bar-track"><div class="comparison-row__bar-fill comparison-row__bar-fill--comp" style="width:' + row.theirs + '%"></div></div><span class="comparison-row__bar-value">' + row.theirs + '</span></div>';
-      html += '</div>';
-      html += '<div class="comparison-row__delta ' + deltaClass + '">' + deltaStr + '</div>';
-      html += '</div>';
+      html += `<div class="comparison-row" style="${tint}">
+        <div class="comparison-row__label">${escapeHtml(row.label)}</div>
+        <div class="comparison-row__bars">
+          <div class="comparison-row__bar-group"><div class="comparison-row__bar-track"><div class="comparison-row__bar-fill comparison-row__bar-fill--yours" style="width:${row.yours}%"></div></div><span class="comparison-row__bar-value">${row.yours}</span></div>
+          <div class="comparison-row__bar-group"><div class="comparison-row__bar-track"><div class="comparison-row__bar-fill comparison-row__bar-fill--comp" style="width:${row.theirs}%"></div></div><span class="comparison-row__bar-value">${row.theirs}</span></div>
+        </div>
+        <div class="comparison-row__delta ${deltaClass}">${deltaStr}</div>
+      </div>`;
     });
 
     html += '</div>';
