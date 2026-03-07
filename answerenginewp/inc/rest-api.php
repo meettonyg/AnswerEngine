@@ -167,32 +167,37 @@ function aewp_handle_scan( WP_REST_Request $request ) {
         'post_type'   => 'aewp_scan',
         'post_title'  => aewp_clean_url_for_display( $url ) . ' — ' . $result['score'] . '/100',
         'post_status' => 'publish',
-    ) );
+    ), true );
 
-    if ( $post_id ) {
-        update_post_meta( $post_id, '_aewp_url', $url );
-        update_post_meta( $post_id, '_aewp_score', $result['score'] );
-        update_post_meta( $post_id, '_aewp_tier', $result['tier'] );
-        update_post_meta( $post_id, '_aewp_sub_scores', $result['sub_scores'] );
-        update_post_meta( $post_id, '_aewp_extraction_data', $result['extraction'] );
-        update_post_meta( $post_id, '_aewp_fixes', $result['fixes'] );
-        update_post_meta( $post_id, '_aewp_hash', $hash );
-        update_post_meta( $post_id, '_aewp_scanned_at', current_time( 'mysql' ) );
-        update_post_meta( $post_id, '_aewp_ip_hash', md5( aewp_get_client_ip() . AUTH_SALT ) );
+    if ( is_wp_error( $post_id ) ) {
+        return new WP_REST_Response( array(
+            'success' => false,
+            'message' => 'Could not save scan results. Please try again.',
+        ), 500 );
+    }
 
-        // Detect rescan — store before/after data for improvement tracking.
-        $previous_scan = aewp_get_previous_scan_for_url( $url, $post_id );
-        if ( $previous_scan ) {
-            $before_score = intval( get_post_meta( $previous_scan->ID, '_aewp_score', true ) );
-            update_post_meta( $post_id, '_aewp_before_score', $before_score );
-            update_post_meta( $post_id, '_aewp_before_tier', get_post_meta( $previous_scan->ID, '_aewp_tier', true ) );
-        }
+    update_post_meta( $post_id, '_aewp_url', $url );
+    update_post_meta( $post_id, '_aewp_score', $result['score'] );
+    update_post_meta( $post_id, '_aewp_tier', $result['tier'] );
+    update_post_meta( $post_id, '_aewp_sub_scores', $result['sub_scores'] );
+    update_post_meta( $post_id, '_aewp_extraction_data', $result['extraction'] );
+    update_post_meta( $post_id, '_aewp_fixes', $result['fixes'] );
+    update_post_meta( $post_id, '_aewp_hash', $hash );
+    update_post_meta( $post_id, '_aewp_scanned_at', current_time( 'mysql' ) );
+    update_post_meta( $post_id, '_aewp_ip_hash', md5( aewp_get_client_ip() . AUTH_SALT ) );
 
-        if ( $competitor_data ) {
-            update_post_meta( $post_id, '_aewp_competitor_url', $competitor_url );
-            update_post_meta( $post_id, '_aewp_competitor_score', $competitor_data['score'] );
-            update_post_meta( $post_id, '_aewp_competitor_data', $competitor_data );
-        }
+    // Detect rescan — store before/after data for improvement tracking.
+    $previous_scan = aewp_get_previous_scan_for_url( $url, $post_id );
+    if ( $previous_scan ) {
+        $before_score = intval( get_post_meta( $previous_scan->ID, '_aewp_score', true ) );
+        update_post_meta( $post_id, '_aewp_before_score', $before_score );
+        update_post_meta( $post_id, '_aewp_before_tier', get_post_meta( $previous_scan->ID, '_aewp_tier', true ) );
+    }
+
+    if ( $competitor_data ) {
+        update_post_meta( $post_id, '_aewp_competitor_url', $competitor_url );
+        update_post_meta( $post_id, '_aewp_competitor_score', $competitor_data['score'] );
+        update_post_meta( $post_id, '_aewp_competitor_data', $competitor_data );
     }
 
     // Build response
@@ -202,7 +207,7 @@ function aewp_handle_scan( WP_REST_Request $request ) {
 
     $response = array(
         'success'            => true,
-        'scan_id'            => $post_id ? (string) $post_id : null,
+        'scan_id'            => (string) $post_id,
         'hash'               => $hash,
         'url'                => aewp_clean_url_for_display( $url ),
         'domain'             => $domain,
