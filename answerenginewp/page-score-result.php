@@ -137,33 +137,14 @@ get_header();
             <?php if ( is_array( $competitor ) && ! empty( $competitor ) ) : ?>
             <div class="competitor-gap">
                 <h3 class="competitor-gap__title">Competitor Structure Gap</h3>
-                <table class="competitor-gap__table">
-                    <thead>
-                        <tr>
-                            <th>Signal</th>
-                            <th><?php echo esc_html( aewp_clean_url_for_display( $url ) ); ?></th>
-                            <th><?php echo esc_html( isset( $competitor['url'] ) ? $competitor['url'] : 'Competitor' ); ?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>Overall Score</strong></td>
-                            <td class="score-cell" style="color:<?php echo esc_attr( $tier['color'] ); ?>"><?php echo intval( $score ); ?></td>
-                            <td class="score-cell"><?php echo intval( $competitor['score'] ); ?></td>
-                        </tr>
-                        <?php if ( is_array( $sub_scores ) && is_array( $competitor['sub_scores'] ?? null ) ) :
-                            foreach ( $sub_scores as $key => $sub ) :
-                                if ( ! is_array( $sub ) ) continue;
-                                $comp_sub = isset( $competitor['sub_scores'][ $key ] ) ? $competitor['sub_scores'][ $key ] : null;
-                        ?>
-                            <tr>
-                                <td><?php echo esc_html( $sub['label'] ); ?></td>
-                                <td class="score-cell"><?php echo intval( $sub['score'] ); ?></td>
-                                <td class="score-cell"><?php echo is_array( $comp_sub ) ? intval( $comp_sub['score'] ) : '&mdash;'; ?></td>
-                            </tr>
-                        <?php endforeach; endif; ?>
-                    </tbody>
-                </table>
+                <?php
+                echo aewp_render_comparison_bars(
+                    array( 'score' => $score, 'sub_scores' => $sub_scores ),
+                    $competitor,
+                    aewp_format_domain( $url ),
+                    isset( $competitor['url'] ) ? $competitor['url'] : 'Competitor'
+                );
+                ?>
             </div>
             <?php endif; ?>
 
@@ -212,10 +193,8 @@ get_header();
                 <div class="scanner-results__cta-actions">
                     <a href="<?php echo esc_url( rest_url( 'aewp/v1/report/' . $hash ) ); ?>" class="btn btn--outline" target="_blank" rel="noopener">Download PDF Report</a>
                     <button type="button" class="btn btn--outline" id="shareScoreBtn" data-url="<?php echo esc_url( home_url( '/score/' . $hash ) ); ?>">Share Score</button>
-                    <?php if ( $score >= 70 ) : ?>
                     <button type="button" class="btn btn--outline" id="copyBadgeBtn"
-                            data-snippet="<?php echo esc_attr( '<a href="' . home_url( '/score/' . $hash ) . '" title="AI Visibility Score: ' . $score . '/100 — ' . $tier['label'] . '" style="display:inline-block;text-decoration:none"><img src="' . rest_url( 'aewp/v1/badge/' . $hash . '.svg' ) . '" alt="AI Visibility Score: ' . $score . '/100" width="160" height="50"></a>' ); ?>">Copy Badge Snippet</button>
-                    <?php endif; ?>
+                            data-snippet="<?php echo esc_attr( '<a href="' . home_url( '/score/' . $hash ) . '" title="AI Visibility Score: ' . $score . '/100 — ' . $tier['label'] . '" style="display:inline-block;text-decoration:none"><img src="' . rest_url( 'aewp/v1/badge/' . $hash . '.svg?variant=small' ) . '" alt="' . aewp_generate_alt_text( aewp_format_domain( $url ), $score, $tier['label'] ) . '" width="220" height="60"></a>' ); ?>">Copy Badge Snippet</button>
                 </div>
                 <a href="<?php echo esc_url( home_url( '/scanner/' ) ); ?>" class="scanner-results__reset">&larr; Scan your own site</a>
             </div>
