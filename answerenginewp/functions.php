@@ -66,6 +66,21 @@ function aewp_scripts() {
         ) );
     }
 
+    // Bulk scan page (admin-only)
+    if ( get_query_var( 'aewp_bulk_scan' ) ) {
+        wp_enqueue_script(
+            'aewp-bulk-scan',
+            get_template_directory_uri() . '/assets/js/bulk-scan.js',
+            array(),
+            '1.0',
+            true
+        );
+        wp_localize_script( 'aewp-bulk-scan', 'aewpBulk', array(
+            'apiUrl' => rest_url( 'aewp/v1/bulk-scan' ),
+            'nonce'  => wp_create_nonce( 'wp_rest' ),
+        ) );
+    }
+
     // Dequeue jQuery on frontend
     if ( ! is_admin() ) {
         wp_deregister_script( 'jquery' );
@@ -146,6 +161,11 @@ function aewp_rewrite_rules() {
         'index.php?aewp_top_sites=1',
         'top'
     );
+    add_rewrite_rule(
+        '^bulk-scan/?$',
+        'index.php?aewp_bulk_scan=1',
+        'top'
+    );
     // Sitemap routes.
     add_rewrite_rule(
         '^sitemap-aewp\.xml$',
@@ -172,6 +192,7 @@ function aewp_query_vars( $vars ) {
     $vars[] = 'aewp_compare_b';
     $vars[] = 'aewp_leaderboard';
     $vars[] = 'aewp_top_sites';
+    $vars[] = 'aewp_bulk_scan';
     $vars[] = 'aewp_sitemap';
     $vars[] = 'aewp_sitemap_page';
     return $vars;
@@ -201,6 +222,10 @@ function aewp_template_redirect() {
     }
     if ( get_query_var( 'aewp_top_sites' ) ) {
         include get_template_directory() . '/page-top-sites.php';
+        exit;
+    }
+    if ( get_query_var( 'aewp_bulk_scan' ) ) {
+        include get_template_directory() . '/page-bulk-scan.php';
         exit;
     }
     $sitemap = get_query_var( 'aewp_sitemap' );
@@ -252,6 +277,14 @@ function aewp_homepage_jsonld() {
     <?php
 }
 add_action( 'wp_head', 'aewp_homepage_jsonld' );
+
+// Noindex private pages
+function aewp_noindex_private_pages() {
+    if ( get_query_var( 'aewp_bulk_scan' ) ) {
+        echo '<meta name="robots" content="noindex, nofollow">' . "\n";
+    }
+}
+add_action( 'wp_head', 'aewp_noindex_private_pages', 1 );
 
 // Custom meta tags
 function aewp_meta_tags() {
