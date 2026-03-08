@@ -98,6 +98,20 @@ function aewp_register_rest_routes() {
         ),
     ) );
 
+    // Prospect report PDF endpoint (agency-branded)
+    register_rest_route( 'aewp/v1', '/prospect-report/(?P<hash>[a-zA-Z0-9]+)', array(
+        'methods'             => 'GET',
+        'callback'            => 'aewp_handle_prospect_report',
+        'permission_callback' => '__return_true',
+        'args'                => array(
+            'hash' => array(
+                'required' => true,
+                'type'     => 'string',
+                'sanitize_callback' => 'sanitize_text_field',
+            ),
+        ),
+    ) );
+
     // Email capture endpoint
     register_rest_route( 'aewp/v1', '/email', array(
         'methods'             => 'POST',
@@ -277,6 +291,39 @@ function aewp_handle_report( WP_REST_Request $request ) {
     // Serve the PDF
     header( 'Content-Type: application/pdf' );
     header( 'Content-Disposition: attachment; filename="ai-visibility-report-' . $hash . '.pdf"' );
+    header( 'Content-Length: ' . filesize( $pdf_path ) );
+    readfile( $pdf_path );
+    exit;
+}
+
+/**
+ * Handle prospect report (agency-branded PDF) request.
+ */
+function aewp_handle_prospect_report( WP_REST_Request $request ) {
+    $hash = $request->get_param( 'hash' );
+    $scan = aewp_get_scan_by_hash( $hash );
+
+    if ( ! $scan ) {
+        return new WP_REST_Response( array( 'message' => 'Scan not found.' ), 404 );
+    }
+
+    $pdf_path = aewp_generate_prospect_pdf( $scan );
+
+    if ( is_wp_error( $pdf_path ) ) {
+        return new WP_REST_Response( array( 'message' => 'Could not generate report.' ), 500 );
+    }
+
+    $url    = get_post_meta( $scan->ID, '_aewp_url', true );
+    $domain = aewp_format_domain( $url );
+
+    $content_type = 'application/pdf';
+    $ext = pathinfo( $pdf_path, PATHINFO_EXTENSION );
+    if ( $ext === 'html' ) {
+        $content_type = 'text/html';
+    }
+
+    header( 'Content-Type: ' . $content_type );
+    header( 'Content-Disposition: attachment; filename="ai-visibility-audit-' . sanitize_file_name( $domain ) . '.' . $ext . '"' );
     header( 'Content-Length: ' . filesize( $pdf_path ) );
     readfile( $pdf_path );
     exit;

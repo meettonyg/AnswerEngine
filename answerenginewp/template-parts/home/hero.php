@@ -27,6 +27,7 @@
             <input type="url" id="heroCompareUrl" class="hero-scanner__compare-input" placeholder="https://competitor.com" autocomplete="off">
 
             <p class="hero-scanner__micro">Free. No login required. Works on any website.</p>
+            <p class="hero-scanner__agency-link"><a href="<?php echo esc_url( home_url( '/scanner/?mode=prospect' ) ); ?>">Agency? Run a prospect audit &rarr;</a></p>
         </div>
     </div>
 </section>

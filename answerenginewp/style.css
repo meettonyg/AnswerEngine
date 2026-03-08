@@ -658,6 +658,21 @@ h2 {
   margin-top: 16px;
 }
 
+.hero-scanner__agency-link {
+  font-size: 13px;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.hero-scanner__agency-link a {
+  color: var(--gray-400);
+  transition: color 0.2s;
+}
+
+.hero-scanner__agency-link a:hover {
+  color: var(--blue);
+}
+
 .hero-scanner__error {
   font-size: 13px;
   color: var(--tier-red);
@@ -1200,6 +1215,61 @@ h2 {
   background: var(--navy);
   min-height: 100vh;
   padding: 160px 0 var(--section-pad);
+}
+
+/* Scanner mode tabs */
+.scanner__modes {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 32px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 4px;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.scanner__mode {
+  flex: 1;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--gray-400);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.scanner__mode:hover {
+  color: var(--gray-200);
+}
+
+.scanner__mode--active {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--white);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.scanner__url-label,
+.scanner__compare-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--gray-300);
+  margin-bottom: 6px;
+  text-align: left;
+}
+
+@media (max-width: 600px) {
+  .scanner__modes {
+    flex-direction: column;
+    max-width: 100%;
+  }
 }
 
 .scanner__h1 {

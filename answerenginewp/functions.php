@@ -63,6 +63,9 @@ function aewp_scripts() {
             'nonce'      => wp_create_nonce( 'wp_rest' ),
             'siteUrl'    => home_url(),
             'tierConfig' => aewp_get_tier_config_for_js(),
+            'mode'       => isset( $_GET['mode'] ) ? sanitize_text_field( $_GET['mode'] ) : 'self',
+            'hasAgency'  => aewp_has_agency_branding(),
+            'agencyName' => aewp_get_agency_name(),
         ) );
     }
 
@@ -166,6 +169,11 @@ function aewp_rewrite_rules() {
         'index.php?aewp_bulk_scan=1',
         'top'
     );
+    add_rewrite_rule(
+        '^prospect-report/([a-zA-Z0-9]+)/?$',
+        'index.php?aewp_prospect_hash=$1',
+        'top'
+    );
     // Sitemap routes.
     add_rewrite_rule(
         '^sitemap-aewp\.xml$',
@@ -193,6 +201,7 @@ function aewp_query_vars( $vars ) {
     $vars[] = 'aewp_leaderboard';
     $vars[] = 'aewp_top_sites';
     $vars[] = 'aewp_bulk_scan';
+    $vars[] = 'aewp_prospect_hash';
     $vars[] = 'aewp_sitemap';
     $vars[] = 'aewp_sitemap_page';
     return $vars;
@@ -228,6 +237,11 @@ function aewp_template_redirect() {
         include get_template_directory() . '/page-bulk-scan.php';
         exit;
     }
+    $prospect_hash = get_query_var( 'aewp_prospect_hash' );
+    if ( $prospect_hash ) {
+        include get_template_directory() . '/page-prospect-report.php';
+        exit;
+    }
     $sitemap = get_query_var( 'aewp_sitemap' );
     if ( $sitemap ) {
         aewp_serve_sitemap( $sitemap );
@@ -251,6 +265,7 @@ require_once get_template_directory() . '/inc/leaderboard.php';
 require_once get_template_directory() . '/inc/leaderboard-graphic.php';
 require_once get_template_directory() . '/inc/sitemap-generator.php';
 require_once get_template_directory() . '/inc/seo-backfill.php';
+require_once get_template_directory() . '/inc/agency-settings.php';
 
 // JSON-LD for homepage
 function aewp_homepage_jsonld() {
@@ -280,7 +295,7 @@ add_action( 'wp_head', 'aewp_homepage_jsonld' );
 
 // Noindex private pages
 function aewp_noindex_private_pages() {
-    if ( get_query_var( 'aewp_bulk_scan' ) ) {
+    if ( get_query_var( 'aewp_bulk_scan' ) || get_query_var( 'aewp_prospect_hash' ) ) {
         echo '<meta name="robots" content="noindex, nofollow">' . "\n";
     }
 }
@@ -343,6 +358,16 @@ function aewp_score_page_title( $title ) {
 
     if ( get_query_var( 'aewp_top_sites' ) ) {
         return 'Top AI-Visible Websites — AI Visibility Rankings &middot; AnswerEngineWP';
+    }
+
+    $prospect_hash = get_query_var( 'aewp_prospect_hash' );
+    if ( $prospect_hash ) {
+        $scan = aewp_get_scan_by_hash( $prospect_hash );
+        if ( $scan ) {
+            $domain = aewp_format_domain( get_post_meta( $scan->ID, '_aewp_url', true ) );
+            $score  = intval( get_post_meta( $scan->ID, '_aewp_score', true ) );
+            return 'AI Visibility Audit: ' . ucfirst( $domain ) . ' — ' . $score . '/100';
+        }
     }
 
     return $title;

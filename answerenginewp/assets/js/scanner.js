@@ -29,6 +29,57 @@
   var MIN_LOADING_MS = 4000;
   var STATUS_INTERVAL_MS = 1500;
 
+  // ---------------------------------------------------------------------------
+  // Mode configuration (Prospect Audit Mode)
+  // ---------------------------------------------------------------------------
+  var INITIAL_MODE = (typeof aewpScanner !== 'undefined' && aewpScanner.mode) ? aewpScanner.mode : 'self';
+  var HAS_AGENCY = (typeof aewpScanner !== 'undefined') ? !!aewpScanner.hasAgency : false;
+  var AGENCY_NAME = (typeof aewpScanner !== 'undefined' && aewpScanner.agencyName) ? aewpScanner.agencyName : '';
+
+  var MODE_CONFIG = {
+    self: {
+      h1: 'Is your website invisible to AI?',
+      sub: 'Enter any URL. Get your AI Visibility Score in under 10 seconds.',
+      urlPlaceholder: 'https://yoursite.com',
+      compLabel: '',
+      compPlaceholder: 'https://competitor.com',
+      compToggle: true,
+      submitText: 'Scan Now \u2192',
+      micro: 'Free. No login required. Works on any website.',
+      pdfLabel: 'Download PDF Report',
+      shareLabel: 'Share Score',
+      emailHeading: 'Get your full report + improvement tips by email'
+    },
+    prospect: {
+      h1: 'Run a prospect AI audit',
+      sub: 'Scan any prospect\u2019s website and generate a client-ready AI visibility audit.',
+      urlPlaceholder: 'https://prospect-website.com',
+      compLabel: 'Their competitor (optional)',
+      compPlaceholder: 'https://competitor.com',
+      compToggle: false,
+      submitText: 'Run Audit \u2192',
+      micro: 'Generate a client-ready AI visibility audit',
+      pdfLabel: 'Download Prospect PDF',
+      shareLabel: 'Send Prospect Report',
+      emailHeading: 'Send audit to prospect'
+    },
+    compare: {
+      h1: 'Compare two competitors',
+      sub: 'Side-by-side AI visibility comparison of any two websites.',
+      urlPlaceholder: 'https://first-site.com',
+      compLabel: 'Second website',
+      compPlaceholder: 'https://second-site.com',
+      compToggle: false,
+      submitText: 'Compare \u2192',
+      micro: 'Side-by-side AI visibility comparison',
+      pdfLabel: 'Download PDF Report',
+      shareLabel: 'Share Comparison',
+      emailHeading: 'Get your full report + improvement tips by email'
+    }
+  };
+
+  var currentMode = INITIAL_MODE;
+
   var TIER_CONFIG = (typeof aewpScanner !== 'undefined' && aewpScanner.tierConfig) ? aewpScanner.tierConfig : [
     { min: 90, key: 'authority', label: 'AI Authority', color: '#22C55E', class: 'tier-green' },
     { min: 70, key: 'extractable', label: 'AI Extractable', color: '#3B82F6', class: 'tier-blue' },
@@ -89,6 +140,61 @@
     els.emailSubmit  = document.getElementById('emailSubmit');
     els.emailSuccess = document.getElementById('emailSuccess');
     els.emailCapture = document.getElementById('emailCapture');
+    els.scannerH1    = document.getElementById('scannerH1');
+    els.scannerSub   = document.getElementById('scannerSub');
+    els.scannerMicro = document.getElementById('scannerMicro');
+    els.scanUrlLabel = document.getElementById('scanUrlLabel');
+    els.compareUrlLabel = document.getElementById('compareUrlLabel');
+    els.emailHeading = els.emailCapture ? els.emailCapture.querySelector('.email-capture__heading') : null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Mode switching
+  // ---------------------------------------------------------------------------
+  function applyMode(mode) {
+    currentMode = mode;
+    var cfg = MODE_CONFIG[mode] || MODE_CONFIG.self;
+
+    // Update text
+    if (els.scannerH1) els.scannerH1.textContent = cfg.h1;
+    if (els.scannerSub) els.scannerSub.textContent = cfg.sub;
+    if (els.scannerMicro) els.scannerMicro.textContent = cfg.micro;
+    if (els.scanUrl) els.scanUrl.placeholder = cfg.urlPlaceholder;
+    if (els.scanSubmit) els.scanSubmit.innerHTML = cfg.submitText;
+
+    // Competitor input visibility
+    if (cfg.compToggle) {
+      // Self mode: show toggle, hide input initially
+      if (els.compareToggle) els.compareToggle.style.display = '';
+      if (els.compareUrl) els.compareUrl.classList.remove('is-visible');
+      if (els.compareUrlLabel) els.compareUrlLabel.style.display = 'none';
+    } else {
+      // Prospect/Compare mode: hide toggle, always show competitor input
+      if (els.compareToggle) els.compareToggle.style.display = 'none';
+      if (els.compareUrl) {
+        els.compareUrl.classList.add('is-visible');
+        els.compareUrl.placeholder = cfg.compPlaceholder;
+      }
+      if (els.compareUrlLabel && cfg.compLabel) {
+        els.compareUrlLabel.textContent = cfg.compLabel;
+        els.compareUrlLabel.style.display = '';
+      }
+    }
+
+    // Tab active states
+    var tabs = document.querySelectorAll('.scanner__mode');
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].classList.toggle('scanner__mode--active', tabs[i].getAttribute('data-mode') === mode);
+    }
+
+    // Update URL param without reload
+    var url = new URL(window.location);
+    if (mode !== 'self') {
+      url.searchParams.set('mode', mode);
+    } else {
+      url.searchParams.delete('mode');
+    }
+    history.replaceState(null, '', url);
   }
 
   // ---------------------------------------------------------------------------
@@ -267,26 +373,41 @@
     // Extraction preview
     renderExtraction(data.extraction);
 
-    // Wire up CTAs
+    // Wire up CTAs (mode-aware)
+    var modeCfg = MODE_CONFIG[currentMode] || MODE_CONFIG.self;
+
     if (data.pdf_url) {
+      var pdfUrl = currentMode === 'prospect'
+        ? data.pdf_url.replace('/aewp/v1/report/', '/aewp/v1/prospect-report/')
+        : data.pdf_url;
+      els.downloadPdf.textContent = modeCfg.pdfLabel;
       els.downloadPdf.onclick = function () {
         trackEvent('pdf_downloaded');
-        window.open(data.pdf_url, '_blank');
+        window.open(pdfUrl, '_blank');
       };
     }
 
     if (data.share_url) {
+      var shareUrl = currentMode === 'prospect' && data.hash
+        ? SITE_URL + '/prospect-report/' + data.hash
+        : data.share_url;
+      els.shareScore.textContent = modeCfg.shareLabel;
       els.shareScore.onclick = function () {
         trackEvent('score_shared');
         if (navigator.clipboard) {
-          navigator.clipboard.writeText(data.share_url).then(function () {
+          navigator.clipboard.writeText(shareUrl).then(function () {
             els.shareScore.textContent = 'Link copied!';
-            setTimeout(function () { els.shareScore.textContent = 'Share Score'; }, 2000);
+            setTimeout(function () { els.shareScore.textContent = modeCfg.shareLabel; }, 2000);
           });
         } else {
-          prompt('Copy this link:', data.share_url);
+          prompt('Copy this link:', shareUrl);
         }
       };
+    }
+
+    // Update email heading for mode
+    if (els.emailHeading) {
+      els.emailHeading.textContent = modeCfg.emailHeading;
     }
 
     // Badge snippet — available for all scores.
@@ -568,7 +689,15 @@
     var url = normalizeUrl(urlVal);
     var competitorUrl = null;
     if (els.compareUrl && els.compareUrl.classList.contains('is-visible') && els.compareUrl.value.trim()) {
-      competitorUrl = normalizeUrl(els.compareUrl.value);
+      if (isValidUrl(els.compareUrl.value)) {
+        competitorUrl = normalizeUrl(els.compareUrl.value);
+      }
+    }
+
+    // Compare mode requires a second URL
+    if (currentMode === 'compare' && !competitorUrl) {
+      showError('Please enter both URLs to compare.');
+      return;
     }
 
     trackEvent('scan_started');
@@ -676,8 +805,21 @@
       });
     }
 
-    // Check for URL params (from hero scanner redirect)
+    // Mode tabs
+    var modeTabs = document.querySelectorAll('.scanner__mode');
+    for (var m = 0; m < modeTabs.length; m++) {
+      modeTabs[m].addEventListener('click', function () {
+        applyMode(this.getAttribute('data-mode'));
+      });
+    }
+
+    // Apply initial mode from URL param
     var params = new URLSearchParams(window.location.search);
+    if (params.get('mode') && MODE_CONFIG[params.get('mode')]) {
+      applyMode(params.get('mode'));
+    }
+
+    // Check for URL params (from hero scanner redirect)
     if (params.get('url')) {
       els.scanUrl.value = params.get('url');
       if (params.get('competitor') && els.compareUrl) {
