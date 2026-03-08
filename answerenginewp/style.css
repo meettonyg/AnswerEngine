@@ -1690,6 +1690,139 @@ h2 {
   padding: 48px 0;
 }
 
+.score-page__domain {
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+/* Comparison Page */
+.compare-heroes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.compare-hero {
+  text-align: center;
+  flex: 1;
+  min-width: 200px;
+  max-width: 300px;
+}
+
+.compare-hero__domain {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px;
+  color: var(--gray-300);
+  margin-bottom: 16px;
+  word-break: break-all;
+}
+
+.compare-hero__vs {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--gray-500);
+  flex-shrink: 0;
+}
+
+.compare-verdict {
+  text-align: center;
+  font-size: 18px;
+  color: var(--gray-300);
+  margin-bottom: 48px;
+}
+
+/* Top Sites Table */
+.top-sites-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 48px;
+}
+
+.top-sites-table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gray-500);
+  border-bottom: 1px solid var(--gray-800, #1e293b);
+}
+
+.top-sites-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--gray-800, #1e293b);
+  font-size: 15px;
+}
+
+.top-sites-table__rank {
+  width: 60px;
+  text-align: center;
+}
+
+.top-sites-table__score {
+  width: 80px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+}
+
+.top-sites-table__domain a {
+  color: var(--gray-200, #e2e8f0);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.top-sites-table__domain a:hover {
+  border-bottom-color: var(--gray-400);
+}
+
+.top-sites-table__row--highlight td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.top-sites-table__medal {
+  font-size: 20px;
+}
+
+/* Report Badge Embed */
+.report-badge-embed {
+  margin-top: 32px;
+  padding: 24px;
+  border: 1px solid var(--gray-800, #1e293b);
+  border-radius: 12px;
+  text-align: left;
+}
+
+.report-badge-embed h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.report-badge-embed p {
+  font-size: 14px;
+  color: var(--gray-400);
+  margin-bottom: 12px;
+}
+
+.report-badge-embed pre {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin-bottom: 12px;
+}
+
+.report-badge-embed code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--gray-300);
+}
+
 /* ==========================================================================
    Static Pages
    ========================================================================== */

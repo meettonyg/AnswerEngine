@@ -186,6 +186,10 @@ function aewp_handle_scan( WP_REST_Request $request ) {
     update_post_meta( $post_id, '_aewp_scanned_at', current_time( 'mysql' ) );
     update_post_meta( $post_id, '_aewp_ip_hash', md5( aewp_get_client_ip() . AUTH_SALT ) );
 
+    // Store domain slug for SEO-friendly /report/ URLs.
+    $domain_slug = aewp_url_to_slug( $url );
+    update_post_meta( $post_id, '_aewp_domain_slug', $domain_slug );
+
     // Detect rescan — store before/after data for improvement tracking.
     $previous_scan = aewp_get_previous_scan_for_url( $url, $post_id );
     if ( $previous_scan ) {
@@ -226,6 +230,7 @@ function aewp_handle_scan( WP_REST_Request $request ) {
         'is_public'          => true,
         'share_url'          => home_url( '/score/' . $hash ),
         'public_url'         => home_url( '/score/' . $hash ),
+        'report_url'         => home_url( '/report/' . $domain_slug ),
         'pdf_url'            => rest_url( 'aewp/v1/report/' . $hash ),
         'badge_url'          => rest_url( 'aewp/v1/badge/' . $hash . '.svg' ),
     );

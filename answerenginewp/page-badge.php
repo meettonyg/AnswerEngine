@@ -25,14 +25,15 @@ get_header();
 
         <h2>Embed Code</h2>
         <p>Copy and paste this HTML into your site:</p>
-<pre><code>&lt;a href="https://answerenginewp.com/score/YOUR_HASH"
+<pre><code>&lt;a href="https://answerenginewp.com/report/YOUR-DOMAIN-SLUG"
    title="AI Visibility Score &mdash; Verified by AnswerEngineWP"
    style="display:inline-block;text-decoration:none"&gt;
   &lt;img src="https://answerenginewp.com/wp-json/aewp/v1/badge/YOUR_HASH.svg"
        alt="AI Visibility Score"
        width="160" height="50"&gt;
 &lt;/a&gt;</code></pre>
-        <p>Replace <code>YOUR_HASH</code> with the hash from your scan results page URL.</p>
+        <p>Replace <code>YOUR-DOMAIN-SLUG</code> with your domain in slug format (e.g., <code>example-com</code>) and <code>YOUR_HASH</code> with the hash from your scan results page URL.</p>
+        <p>Your badge links to your public report page at <code>/report/your-domain/</code>, which helps build backlinks and brand visibility.</p>
 
         <h2>Badge Guidelines</h2>
         <ul>

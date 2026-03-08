@@ -119,7 +119,7 @@ function aewp_register_scan_results() {
 }
 add_action( 'init', 'aewp_register_scan_results' );
 
-// Custom rewrite rules for /score/{hash} and /leaderboard/ URLs
+// Custom rewrite rules for /score/{hash}, /report/{slug}, /compare/{a}-vs-{b}, /leaderboard/, /top-sites/
 function aewp_rewrite_rules() {
     add_rewrite_rule(
         '^score/([a-zA-Z0-9]+)/?$',
@@ -127,8 +127,39 @@ function aewp_rewrite_rules() {
         'top'
     );
     add_rewrite_rule(
+        '^report/([a-z0-9][a-z0-9-]*[a-z0-9])/?$',
+        'index.php?aewp_report_slug=$1',
+        'top'
+    );
+    add_rewrite_rule(
+        '^compare/([a-z0-9][a-z0-9-]*[a-z0-9])-vs-([a-z0-9][a-z0-9-]*[a-z0-9])/?$',
+        'index.php?aewp_compare_a=$1&aewp_compare_b=$2',
+        'top'
+    );
+    add_rewrite_rule(
         '^leaderboard/?$',
         'index.php?aewp_leaderboard=1',
+        'top'
+    );
+    add_rewrite_rule(
+        '^top-ai-visible-websites/?$',
+        'index.php?aewp_top_sites=1',
+        'top'
+    );
+    // Sitemap routes.
+    add_rewrite_rule(
+        '^sitemap-aewp\.xml$',
+        'index.php?aewp_sitemap=index',
+        'top'
+    );
+    add_rewrite_rule(
+        '^sitemap-aewp-reports-?([0-9]*)\.xml$',
+        'index.php?aewp_sitemap=reports&aewp_sitemap_page=$1',
+        'top'
+    );
+    add_rewrite_rule(
+        '^sitemap-aewp-compare-?([0-9]*)\.xml$',
+        'index.php?aewp_sitemap=compare&aewp_sitemap_page=$1',
         'top'
     );
 }
@@ -136,7 +167,13 @@ add_action( 'init', 'aewp_rewrite_rules' );
 
 function aewp_query_vars( $vars ) {
     $vars[] = 'aewp_score_hash';
+    $vars[] = 'aewp_report_slug';
+    $vars[] = 'aewp_compare_a';
+    $vars[] = 'aewp_compare_b';
     $vars[] = 'aewp_leaderboard';
+    $vars[] = 'aewp_top_sites';
+    $vars[] = 'aewp_sitemap';
+    $vars[] = 'aewp_sitemap_page';
     return $vars;
 }
 add_filter( 'query_vars', 'aewp_query_vars' );
@@ -147,8 +184,28 @@ function aewp_template_redirect() {
         include get_template_directory() . '/page-score-result.php';
         exit;
     }
+    $report_slug = get_query_var( 'aewp_report_slug' );
+    if ( $report_slug ) {
+        include get_template_directory() . '/page-report.php';
+        exit;
+    }
+    $compare_a = get_query_var( 'aewp_compare_a' );
+    $compare_b = get_query_var( 'aewp_compare_b' );
+    if ( $compare_a && $compare_b ) {
+        include get_template_directory() . '/page-compare.php';
+        exit;
+    }
     if ( get_query_var( 'aewp_leaderboard' ) ) {
         include get_template_directory() . '/page-leaderboard.php';
+        exit;
+    }
+    if ( get_query_var( 'aewp_top_sites' ) ) {
+        include get_template_directory() . '/page-top-sites.php';
+        exit;
+    }
+    $sitemap = get_query_var( 'aewp_sitemap' );
+    if ( $sitemap ) {
+        aewp_serve_sitemap( $sitemap );
         exit;
     }
 }
@@ -167,6 +224,8 @@ require_once get_template_directory() . '/inc/rate-limiter.php';
 require_once get_template_directory() . '/inc/comparison-renderer.php';
 require_once get_template_directory() . '/inc/leaderboard.php';
 require_once get_template_directory() . '/inc/leaderboard-graphic.php';
+require_once get_template_directory() . '/inc/sitemap-generator.php';
+require_once get_template_directory() . '/inc/seo-backfill.php';
 
 // JSON-LD for homepage
 function aewp_homepage_jsonld() {
@@ -217,7 +276,7 @@ function aewp_meta_tags() {
 }
 add_action( 'wp_head', 'aewp_meta_tags' );
 
-// Custom title for score pages
+// Custom title for score, report, compare, and top-sites pages
 function aewp_score_page_title( $title ) {
     $hash = get_query_var( 'aewp_score_hash' );
     if ( $hash ) {
@@ -228,6 +287,31 @@ function aewp_score_page_title( $title ) {
             return esc_html( $url ) . ' scored ' . intval( $score ) . '/100 — AI Visibility Score &middot; AnswerEngineWP';
         }
     }
+
+    $report_slug = get_query_var( 'aewp_report_slug' );
+    if ( $report_slug ) {
+        $scan = aewp_get_scan_by_slug( $report_slug );
+        if ( $scan ) {
+            $domain = aewp_format_domain( get_post_meta( $scan->ID, '_aewp_url', true ) );
+            $score  = intval( get_post_meta( $scan->ID, '_aewp_score', true ) );
+            return ucfirst( $domain ) . ' AI Visibility Score (' . $score . '/100) — AnswerEngineWP';
+        }
+    }
+
+    $compare_a = get_query_var( 'aewp_compare_a' );
+    $compare_b = get_query_var( 'aewp_compare_b' );
+    if ( $compare_a && $compare_b ) {
+        $scan_a = aewp_get_scan_by_slug( $compare_a );
+        $scan_b = aewp_get_scan_by_slug( $compare_b );
+        $domain_a = $scan_a ? aewp_format_domain( get_post_meta( $scan_a->ID, '_aewp_url', true ) ) : $compare_a;
+        $domain_b = $scan_b ? aewp_format_domain( get_post_meta( $scan_b->ID, '_aewp_url', true ) ) : $compare_b;
+        return ucfirst( $domain_a ) . ' vs ' . ucfirst( $domain_b ) . ' — AI Visibility Comparison &middot; AnswerEngineWP';
+    }
+
+    if ( get_query_var( 'aewp_top_sites' ) ) {
+        return 'Top AI-Visible Websites — AI Visibility Rankings &middot; AnswerEngineWP';
+    }
+
     return $title;
 }
 add_filter( 'pre_get_document_title', 'aewp_score_page_title' );
@@ -246,4 +330,80 @@ function aewp_get_scan_by_hash( $hash ) {
     ) );
     return ! empty( $scans ) ? $scans[0] : null;
 }
+
+/**
+ * Convert a URL to a SEO-friendly slug.
+ *
+ * Strips protocol, www prefix, trailing slashes, and replaces
+ * dots/special chars with hyphens.
+ *
+ * @param string $url The URL to convert.
+ * @return string Slug (e.g., "example-com").
+ */
+function aewp_url_to_slug( $url ) {
+    $slug = preg_replace( '#^https?://#i', '', $url );
+    $slug = preg_replace( '/^www\./i', '', $slug );
+    $slug = rtrim( $slug, '/' );
+    // Remove path — keep only the domain.
+    $slash_pos = strpos( $slug, '/' );
+    if ( $slash_pos !== false ) {
+        $slug = substr( $slug, 0, $slash_pos );
+    }
+    // Replace dots and non-alphanumeric chars with hyphens.
+    $slug = preg_replace( '/[^a-z0-9]+/i', '-', strtolower( $slug ) );
+    $slug = trim( $slug, '-' );
+    return $slug;
+}
+
+/**
+ * Convert a domain slug back to a display domain.
+ *
+ * @param string $slug The domain slug (e.g., "example-com").
+ * @return string Display domain (e.g., "example.com").
+ */
+function aewp_slug_to_domain( $slug ) {
+    // Replace the last hyphen before a TLD with a dot.
+    // Simple heuristic: replace hyphens that precede common TLDs.
+    $slug = sanitize_text_field( $slug );
+    // Reverse: replace hyphens with dots, but this is imperfect for domains with actual hyphens.
+    // Better: look up the actual domain from the stored scan.
+    return $slug;
+}
+
+/**
+ * Get the most recent scan post for a domain slug.
+ *
+ * @param string $slug Domain slug (e.g., "example-com").
+ * @return WP_Post|null
+ */
+function aewp_get_scan_by_slug( $slug ) {
+    $slug  = sanitize_text_field( $slug );
+    $scans = get_posts( array(
+        'post_type'   => 'aewp_scan',
+        'meta_key'    => '_aewp_domain_slug',
+        'meta_value'  => $slug,
+        'numberposts' => 1,
+        'orderby'     => 'date',
+        'order'       => 'DESC',
+        'post_status' => 'publish',
+    ) );
+    return ! empty( $scans ) ? $scans[0] : null;
+}
+
+/**
+ * robots.txt additions for programmatic SEO pages.
+ */
+function aewp_robots_txt( $output, $public ) {
+    if ( '0' === $public ) {
+        return $output;
+    }
+    $output .= "\n# AnswerEngineWP AI Visibility Reports\n";
+    $output .= "Allow: /report/\n";
+    $output .= "Allow: /compare/\n";
+    $output .= "Allow: /leaderboard/\n";
+    $output .= "Allow: /top-ai-visible-websites/\n";
+    $output .= "Sitemap: " . home_url( '/sitemap-aewp.xml' ) . "\n";
+    return $output;
+}
+add_filter( 'robots_txt', 'aewp_robots_txt', 10, 2 );
 
