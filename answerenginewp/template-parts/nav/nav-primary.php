@@ -15,9 +15,11 @@
             <span class="site-nav__toggle-bar"></span>
         </button>
         <div class="site-nav__links" id="navLinks">
-            <a href="<?php echo esc_url( home_url( '/methodology/' ) ); ?>" class="site-nav__link">Methodology</a>
-            <a href="https://wordpress.org/plugins/answerenginewp/" class="site-nav__link" target="_blank" rel="noopener">Download Plugin</a>
-            <a href="<?php echo esc_url( home_url( '/scanner/' ) ); ?>" class="btn btn--nav">Scan Your Site</a>
+            <a href="<?php echo esc_url( home_url( '/docs/' ) ); ?>" class="site-nav__link">Docs</a>
+            <a href="<?php echo esc_url( home_url( '/pricing/' ) ); ?>" class="site-nav__link">Pricing</a>
+            <a href="<?php echo esc_url( home_url( '/blog/' ) ); ?>" class="site-nav__link">Blog</a>
+            <a href="https://aivisibilityscanner.com" class="site-nav__link" target="_blank" rel="noopener">Test Your Site &rarr;</a>
+            <a href="https://wordpress.org/plugins/answerenginewp/" class="btn btn--nav" target="_blank" rel="noopener">Download Plugin</a>
         </div>
     </div>
 </nav>

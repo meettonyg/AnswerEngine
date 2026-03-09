@@ -1,15 +1,16 @@
 <?php
 /**
  * Auto-create required pages on theme activation.
+ *
+ * @package AIVisibilityScanner
  */
 
-function answerenginewp_create_pages() {
+function aivisibilityscanner_create_pages() {
     $pages = array(
-        'docs'         => array( 'title' => 'Documentation',   'template' => 'page-docs.php' ),
-        'pricing'      => array( 'title' => 'Pricing',         'template' => 'page-pricing.php' ),
+        'scan'         => array( 'title' => 'Scan',            'template' => 'page-scan.php' ),
+        'badge'        => array( 'title' => 'Badge',           'template' => 'page-badge.php' ),
         'methodology'  => array( 'title' => 'Methodology',     'template' => 'page-methodology.php' ),
         'privacy'      => array( 'title' => 'Privacy Policy',  'template' => 'page-privacy.php' ),
-        'support'      => array( 'title' => 'Support',         'template' => 'page-support.php' ),
     );
 
     foreach ( $pages as $slug => $page_data ) {
@@ -28,20 +29,6 @@ function answerenginewp_create_pages() {
         }
     }
 
-    // Create blog page
-    $blog = get_page_by_path( 'blog' );
-    if ( ! $blog ) {
-        $blog_id = wp_insert_post( array(
-            'post_title'   => 'Blog',
-            'post_name'    => 'blog',
-            'post_status'  => 'publish',
-            'post_type'    => 'page',
-            'post_content' => '',
-        ) );
-    } else {
-        $blog_id = $blog->ID;
-    }
-
     // Set front page to static
     $front = get_page_by_path( 'home' );
     if ( ! $front ) {
@@ -58,19 +45,18 @@ function answerenginewp_create_pages() {
 
     update_option( 'show_on_front', 'page' );
     update_option( 'page_on_front', $front_id );
-    update_option( 'page_for_posts', $blog_id );
 
     // Flush rewrite rules
     flush_rewrite_rules();
 }
-add_action( 'after_switch_theme', 'answerenginewp_create_pages' );
+add_action( 'after_switch_theme', 'aivisibilityscanner_create_pages' );
 
 // One-time fallback: run page creation if it hasn't happened yet
-function answerenginewp_maybe_create_pages() {
-    if ( get_option( 'answerenginewp_pages_created' ) ) {
+function aivisibilityscanner_maybe_create_pages() {
+    if ( get_option( 'aivisibilityscanner_pages_created' ) ) {
         return;
     }
-    answerenginewp_create_pages();
-    update_option( 'answerenginewp_pages_created', '1' );
+    aivisibilityscanner_create_pages();
+    update_option( 'aivisibilityscanner_pages_created', '1' );
 }
-add_action( 'init', 'answerenginewp_maybe_create_pages' );
+add_action( 'init', 'aivisibilityscanner_maybe_create_pages' );

@@ -1,6 +1,6 @@
 <?php
 /**
- * Template Name: Documentation
+ * Documentation page — auto-loaded for slug "docs".
  *
  * @package AnswerEngineWP
  */

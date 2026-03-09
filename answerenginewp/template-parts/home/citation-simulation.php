@@ -44,7 +44,7 @@
         </div>
 
         <div class="citation-sim__cta fade-up">
-            <a href="<?php echo esc_url( home_url( '/scanner/' ) ); ?>" class="btn btn--primary">Try it with your site &rarr;</a>
+            <a href="https://aivisibilityscanner.com" class="btn btn--primary" target="_blank" rel="noopener">Try it with your site &rarr;</a>
             <p class="citation-sim__disclaimer">Citation likelihood based on structural signals, not AI ranking models. This estimates how extractable your content is — not how any specific AI system will respond to any specific query.</p>
         </div>
     </div>

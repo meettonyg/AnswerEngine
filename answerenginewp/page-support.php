@@ -1,6 +1,6 @@
 <?php
 /**
- * Template Name: Support
+ * Support page — auto-loaded for slug "support".
  *
  * @package AnswerEngineWP
  */

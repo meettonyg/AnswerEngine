@@ -2,7 +2,7 @@
 /**
  * Methodology page — auto-loaded for slug "methodology".
  *
- * @package AnswerEngineWP
+ * @package AIVisibilityScanner
  */
 
 get_header();
@@ -13,10 +13,10 @@ get_header();
     <div class="container">
         <div class="section-label">Methodology</div>
         <h1>How the AI Visibility Score Works</h1>
-        <p>The AI Visibility Score is a 0&ndash;100 metric that measures how extractable and citable your website content is by AI systems like ChatGPT, Perplexity, and Google AI Overviews. <a href="https://aivisibilityscanner.com" target="_blank" rel="noopener">Run a free scan</a> to see your score.</p>
+        <p>The AI Visibility Score is a 0&ndash;100 metric that measures how extractable and citable your website content is by AI systems like ChatGPT, Perplexity, and Google AI Overviews.</p>
 
         <h2>What We Measure</h2>
-        <p>The <a href="https://aivisibilityscanner.com" target="_blank" rel="noopener">AI Visibility Scanner</a> performs real-time, on-page HTML analysis of any URL. It does not use third-party APIs or AI ranking models. Every score is based entirely on the structural signals present in your page markup.</p>
+        <p>The scanner performs real-time, on-page HTML analysis of any URL. It does not use third-party APIs or AI ranking models. Every score is based entirely on the structural signals present in your page markup.</p>
 
         <h2>The 6 Sub-Scores</h2>
 
@@ -57,9 +57,7 @@ get_header();
         <p>The AI Visibility Score measures structural readiness for AI extraction &mdash; the technical foundation that makes citation possible. It does not predict or guarantee any specific AI system's behavior.</p>
 
         <h2>Data Sources</h2>
-        <p>The scanner uses on-page HTML analysis only. The target URL is fetched server-side, the DOM is parsed, and structural signals are evaluated. No third-party APIs, no cookies, no tracking pixels. Each scan is stateless and independent.</p>
-
-        <p style="margin-top:40px;text-align:center;"><a href="https://aivisibilityscanner.com" class="btn btn--primary" target="_blank" rel="noopener">Scan Your Site Free &rarr;</a></p>
+        <p>The scanner uses on-page HTML analysis only. We fetch the target URL server-side, parse the DOM, and evaluate structural signals. No third-party APIs, no cookies, no tracking pixels. Each scan is stateless and independent.</p>
     </div>
 </div>
 </main>

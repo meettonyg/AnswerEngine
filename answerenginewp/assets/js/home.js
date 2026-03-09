@@ -3,7 +3,6 @@
  *
  * - Scroll-triggered fade-up animations
  * - Nav scroll effect
- * - Hero scanner card (redirects to /scanner/ on submit)
  */
 
 (function () {
@@ -40,6 +39,9 @@
     var nav = document.getElementById('siteNav');
     if (!nav) return;
 
+    // Only toggle nav background on the homepage; inner pages keep it solid
+    if (nav.classList.contains('site-nav--scrolled')) return;
+
     var scrolled = false;
 
     function checkScroll() {
@@ -55,96 +57,10 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Hero Scanner Card
-  // ---------------------------------------------------------------------------
-  function initHeroScanner() {
-    var input = document.getElementById('heroScanUrl');
-    var btn = document.getElementById('heroScanBtn');
-    var error = document.getElementById('heroScanError');
-    var compareToggle = document.getElementById('heroCompareToggle');
-    var compareInput = document.getElementById('heroCompareUrl');
-
-    if (!input || !btn) return;
-
-    // Compare toggle
-    if (compareToggle && compareInput) {
-      compareToggle.addEventListener('click', function () {
-        compareInput.classList.toggle('is-visible');
-        if (compareInput.classList.contains('is-visible')) {
-          compareInput.focus();
-        }
-      });
-    }
-
-    function validateUrl(value) {
-      if (!value.trim()) return false;
-      var url = value.trim();
-      if (!/^https?:\/\//i.test(url)) {
-        url = 'https://' + url;
-      }
-      try {
-        var parsed = new URL(url);
-        return parsed.hostname.indexOf('.') !== -1;
-      } catch (e) {
-        return false;
-      }
-    }
-
-    function handleScan() {
-      var val = input.value.trim();
-
-      if (!val) {
-        error.textContent = 'Please enter a valid URL (e.g. https://yoursite.com)';
-        error.classList.add('is-visible');
-        return;
-      }
-
-      if (!validateUrl(val)) {
-        error.textContent = "That doesn't look like a valid URL. Try including https://";
-        error.classList.add('is-visible');
-        return;
-      }
-
-      error.classList.remove('is-visible');
-
-      // Build scanner URL with pre-filled values
-      var scannerUrl = (typeof aewpHome !== 'undefined' && aewpHome.scannerUrl) ? aewpHome.scannerUrl : '/scanner/';
-      var url = val;
-      if (!/^https?:\/\//i.test(url)) {
-        url = 'https://' + url;
-      }
-      scannerUrl += '?url=' + encodeURIComponent(url);
-
-      if (compareInput && compareInput.classList.contains('is-visible') && compareInput.value.trim()) {
-        var compUrl = compareInput.value.trim();
-        if (!/^https?:\/\//i.test(compUrl)) {
-          compUrl = 'https://' + compUrl;
-        }
-        scannerUrl += '&competitor=' + encodeURIComponent(compUrl);
-      }
-
-      window.location.href = scannerUrl;
-    }
-
-    btn.addEventListener('click', handleScan);
-    input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        handleScan();
-      }
-    });
-
-    // Clear error on input
-    input.addEventListener('input', function () {
-      error.classList.remove('is-visible');
-    });
-  }
-
-  // ---------------------------------------------------------------------------
   // Init
   // ---------------------------------------------------------------------------
   document.addEventListener('DOMContentLoaded', function () {
     initScrollAnimations();
     initNavScroll();
-    initHeroScanner();
   });
 })();

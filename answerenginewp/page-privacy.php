@@ -1,6 +1,6 @@
 <?php
 /**
- * Template Name: Privacy Policy
+ * Privacy Policy page — auto-loaded for slug "privacy".
  *
  * @package AnswerEngineWP
  */
@@ -16,13 +16,8 @@ get_header();
         <p><em>Last updated: March 2026</em></p>
         <p>AnswerEngineWP is committed to minimal data collection. Here&rsquo;s exactly what we collect and why.</p>
 
-        <h2>What the Scanner Collects</h2>
-        <p>When you use the public AI Scanner at answerenginewp.com/scanner:</p>
-        <ul>
-            <li>The URL you submit is fetched and analyzed server-side. We store the URL, the scan results, and a hash of your IP address (for rate limiting only). We do not store your full IP address.</li>
-            <li>If you provide a competitor URL, it is processed and stored the same way.</li>
-            <li>Scan results are stored to enable shareable score URLs and PDF report downloads. Results may be deleted after 90 days.</li>
-        </ul>
+        <h2>AI Visibility Scanner</h2>
+        <p>The free <a href="https://aivisibilityscanner.com" target="_blank" rel="noopener">AI Visibility Scanner</a> is a separate service operated at aivisibilityscanner.com. If you use the scanner, please refer to its own privacy policy for details on data collection and retention.</p>
 
         <h2>What the Plugin Collects</h2>
         <p>The AnswerEngineWP WordPress plugin operates entirely on your server. It does not send data to our servers unless you explicitly use the public scanner or a feature that requires an API call (such as AI Summary Generation in the Pro tier). When API calls are made, only the page content necessary for analysis is transmitted.</p>
@@ -43,8 +38,6 @@ get_header();
 
         <h2>Data Retention</h2>
         <ul>
-            <li>Scanner results: 90 days</li>
-            <li>Rate-limiting IP hashes: 1 hour</li>
             <li>Analytics data: managed by Plausible&rsquo;s retention policy</li>
         </ul>
 

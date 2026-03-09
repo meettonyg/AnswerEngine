@@ -9,7 +9,7 @@
             <div class="how-it-works__step">
                 <div class="how-it-works__number">01</div>
                 <h3 class="how-it-works__title">Scan your site</h3>
-                <p class="how-it-works__desc">Enter any URL and get your AI Visibility Score in under 10 seconds. Works on any website — yours, your clients', your competitors'.</p>
+                <p class="how-it-works__desc">Get your free AI Visibility Score <a href="https://aivisibilityscanner.com" target="_blank" rel="noopener">at aivisibilityscanner.com</a>. Works on any website — yours, your clients', your competitors'.</p>
             </div>
 
             <div class="how-it-works__step">

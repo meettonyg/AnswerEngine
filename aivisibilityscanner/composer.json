@@ -1,0 +1,11 @@
+{
+    "name": "aivisibilityscanner/theme",
+    "description": "AI Visibility Scanner WordPress theme",
+    "type": "wordpress-theme",
+    "require": {
+        "dompdf/dompdf": "^2.0"
+    },
+    "config": {
+        "vendor-dir": "vendor"
+    }
+}
