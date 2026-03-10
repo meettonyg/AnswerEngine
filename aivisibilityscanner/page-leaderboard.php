@@ -8,6 +8,18 @@
  * @package AIVisibilityScanner
  */
 
+// Guard: require plugin for leaderboard data.
+if ( ! function_exists( 'aivs_get_leaderboard' ) ) {
+	get_header();
+	echo '<main><div class="container" style="padding:4rem 1rem;text-align:center;">';
+	echo '<h1>Scanner Plugin Required</h1>';
+	echo '<p style="color:var(--gray-400);max-width:480px;margin:1rem auto;">The AI Visibility Scanner plugin must be installed and activated to view the leaderboard.</p>';
+	echo '<a href="' . esc_url( home_url( '/' ) ) . '" class="btn btn--primary">Back to Home</a>';
+	echo '</div></main>';
+	get_footer();
+	return;
+}
+
 $segment = isset( $_GET['segment'] ) ? sanitize_text_field( $_GET['segment'] ) : '';
 $limit   = isset( $_GET['limit'] ) ? min( 100, max( 1, intval( $_GET['limit'] ) ) ) : 50;
 
@@ -53,7 +65,7 @@ get_header();
 			?>
 			<div class="<?php echo esc_attr( $row_class ); ?>">
 				<span class="leaderboard-row__rank"><?php echo intval( $entry['rank'] ); ?></span>
-				<span class="leaderboard-row__domain"><a href="<?php echo esc_url( home_url( '/report/' . $entry['domain'] ) ); ?>"><?php echo esc_html( $entry['domain'] ); ?></a></span>
+				<span class="leaderboard-row__domain"><a href="<?php echo esc_url( home_url( '/report/' . $entry['url_path'] ) ); ?>"><?php echo esc_html( $entry['domain'] ); ?></a></span>
 				<span class="leaderboard-row__score" style="color:<?php echo esc_attr( $entry['tier_color'] ); ?>"><?php echo intval( $entry['score'] ); ?></span>
 				<span class="leaderboard-row__tier">
 					<span class="leaderboard-tier-chip" style="color:<?php echo esc_attr( $entry['tier_color'] ); ?>;border-color:<?php echo esc_attr( $entry['tier_color'] ); ?>">

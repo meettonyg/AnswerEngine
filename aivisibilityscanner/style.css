@@ -2020,6 +2020,311 @@ h2 {
   }
 }
 
+/* Email gate highlight pulse */
+.email-capture--highlight {
+  animation: emailPulse 0.6s ease-in-out 2;
+}
+
+@keyframes emailPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+  50% { box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.25); }
+}
+
+/* Locked button state */
+.btn--locked {
+  opacity: 0.85;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   Critical Alerts
+   ========================================================================== */
+
+.critical-alerts {
+  margin-bottom: 32px;
+}
+
+.critical-alert {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+
+.critical-alert--robots {
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+}
+
+.critical-alert--spa {
+  background: #FFF7ED;
+  border: 1px solid #FED7AA;
+}
+
+.critical-alert__icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.critical-alert__title {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--tier-red);
+  margin-bottom: 4px;
+}
+
+.critical-alert__desc {
+  font-size: 14px;
+  color: var(--gray-700);
+  margin-bottom: 8px;
+}
+
+.critical-alert__cta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--blue);
+}
+
+/* ==========================================================================
+   Page Type Context
+   ========================================================================== */
+
+.page-type-context {
+  background: #F0F9FF;
+  border: 1px solid #BAE6FD;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 32px;
+}
+
+.page-type-context__info {
+  font-size: 14px;
+  color: var(--gray-700);
+  margin: 0;
+}
+
+/* ==========================================================================
+   Raw Text View ("How AI Sees You")
+   ========================================================================== */
+
+.raw-text-view {
+  margin-bottom: 48px;
+}
+
+.raw-text-view__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.raw-text-view__toggle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  background: none;
+  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  color: var(--gray-500);
+}
+
+.raw-text-view__toggle:hover {
+  border-color: var(--gray-400);
+  color: var(--gray-700);
+}
+
+.raw-text-view__pre {
+  background: #0F172A;
+  color: #A5F3FC;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 24px;
+  border-radius: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin-bottom: 12px;
+}
+
+.raw-text-view__cta {
+  font-size: 13px;
+  color: var(--gray-500);
+}
+
+.raw-text-view__cta a {
+  color: var(--blue);
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Fix Card AEWP CTA
+   ========================================================================== */
+
+.fix-card__aewp-cta {
+  display: block;
+  margin-top: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--blue);
+  text-decoration: none;
+}
+
+.fix-card__aewp-cta:hover {
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   Citation Sim Missed Headings
+   ========================================================================== */
+
+.citation-sim__missed-heading {
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: #DC2626;
+}
+
+/* ==========================================================================
+   Blindspot Upsell
+   ========================================================================== */
+
+.blindspot {
+  background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+  border: 1px solid var(--gray-200);
+  border-radius: 16px;
+  padding: 40px;
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.blindspot__icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.blindspot__title {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 8px;
+}
+
+.blindspot__desc {
+  font-size: 15px;
+  color: var(--gray-500);
+  max-width: 500px;
+  margin: 0 auto 24px;
+  line-height: 1.6;
+}
+
+/* ==========================================================================
+   Page Type Dropdown (Input Form)
+   ========================================================================== */
+
+.scanner__page-type {
+  margin-bottom: 16px;
+}
+
+.scanner__page-type-label {
+  font-size: 13px;
+  color: var(--gray-500);
+  margin-bottom: 4px;
+  display: block;
+}
+
+.scanner__page-type-select {
+  width: 100%;
+  padding: 12px 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: white;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394A3B8' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+}
+
+.scanner__page-type-select:focus {
+  border-color: var(--blue);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.scanner__page-type-select option {
+  background: #1E293B;
+  color: white;
+}
+
+/* ==========================================================================
+   Terminal Loading Animation
+   ========================================================================== */
+
+.terminal {
+  background: #0F172A;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.terminal__header {
+  display: flex;
+  gap: 6px;
+  padding: 12px 16px;
+  background: #1E293B;
+}
+
+.terminal__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.terminal__dot--red { background: #EF4444; }
+.terminal__dot--yellow { background: #F59E0B; }
+.terminal__dot--green { background: #22C55E; }
+
+.terminal__body {
+  padding: 16px;
+  min-height: 120px;
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.terminal__line {
+  color: #A5F3FC;
+  opacity: 0;
+  animation: terminalFadeIn 0.3s ease forwards;
+}
+
+.terminal__line::before {
+  content: '> ';
+  color: #22C55E;
+}
+
+@keyframes terminalFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ==========================================================================
    Comparison Bar Chart
    ========================================================================== */

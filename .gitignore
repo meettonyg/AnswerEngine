@@ -1,3 +1,24 @@
-answerenginewp.zip
-/vendor/
-/answerenginewp/vendor/
+node_modules/
+vendor/
+
+# Zip build artifacts
+*.zip
+aivs-scanner/
+
+# Build scripts
+build-*.ps1
+build-*.php
+build-*.js
+make-zip.ps1
+package-themes.sh
+
+# WordPress config
+wp-config.php
+
+# System files
+nul
+.DS_Store
+Thumbs.db
+
+# Claude Code
+.claude/

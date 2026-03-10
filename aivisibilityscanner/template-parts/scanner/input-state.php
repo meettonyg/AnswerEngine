@@ -9,6 +9,17 @@
             Please enter a valid URL (e.g. https://yoursite.com)
         </div>
 
+        <div class="scanner__page-type">
+            <label for="pageType" class="scanner__page-type-label">What type of page is this?</label>
+            <select id="pageType" class="scanner__page-type-select">
+                <option value="auto" selected>Auto-detect</option>
+                <option value="homepage">Homepage / Brand Page</option>
+                <option value="blog_post">Blog Post / Article</option>
+                <option value="product_page">Product Page</option>
+                <option value="local_service">Local Service Page</option>
+            </select>
+        </div>
+
         <button type="button" class="scanner__compare-toggle" id="compareToggle">
             Compare against a competitor &rarr;
         </button>

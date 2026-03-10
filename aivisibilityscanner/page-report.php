@@ -8,6 +8,18 @@
  * @package AIVisibilityScanner
  */
 
+// Guard: require plugin for scan data functions.
+if ( ! function_exists( 'aivs_get_tier' ) ) {
+	get_header();
+	echo '<main class="report"><div class="container" style="padding:4rem 1rem;text-align:center;">';
+	echo '<h1>Scanner Plugin Required</h1>';
+	echo '<p style="color:var(--gray-400);max-width:480px;margin:1rem auto;">The AI Visibility Scanner plugin must be installed and activated to view reports.</p>';
+	echo '<a href="' . esc_url( home_url( '/' ) ) . '" class="btn btn--primary">Back to Home</a>';
+	echo '</div></main>';
+	get_footer();
+	return;
+}
+
 // Try domain-based lookup first, then fall back to hash
 $domain = get_query_var( 'aivs_report_domain' );
 $hash   = get_query_var( 'aivs_score_hash' );
@@ -44,6 +56,11 @@ $extraction    = get_post_meta( $scan->ID, '_aivs_extraction_data', true );
 $fixes         = get_post_meta( $scan->ID, '_aivs_fixes', true );
 $scanned_at    = get_post_meta( $scan->ID, '_aivs_scanned_at', true );
 $competitor    = get_post_meta( $scan->ID, '_aivs_competitor_data', true );
+$robots_data   = get_post_meta( $scan->ID, '_aivs_robots_data', true );
+$spa_detection = get_post_meta( $scan->ID, '_aivs_spa_detection', true );
+$raw_text_data = get_post_meta( $scan->ID, '_aivs_raw_text', true );
+$missed_citations = get_post_meta( $scan->ID, '_aivs_missed_citations', true );
+$page_type     = get_post_meta( $scan->ID, '_aivs_page_type', true );
 $tier          = aivs_get_tier( $score );
 $gauge_offset  = 283 - ( 283 * $score / 100 );
 $scan_hash     = get_post_meta( $scan->ID, '_aivs_hash', true );
@@ -103,6 +120,45 @@ get_header();
                 <p class="scanner-results__tier-message"><?php echo esc_html( $tier['message'] ); ?></p>
             </div>
 
+            <!-- Critical Alerts -->
+            <?php if ( ( is_array( $robots_data ) && ! empty( $robots_data['has_critical_block'] ) ) ||
+                       ( is_array( $spa_detection ) && ! empty( $spa_detection['is_spa'] ) ) ) : ?>
+            <div class="critical-alerts">
+                <?php if ( ! empty( $robots_data['has_critical_block'] ) ) : ?>
+                <div class="critical-alert critical-alert--robots">
+                    <div class="critical-alert__icon">&#9888;</div>
+                    <div class="critical-alert__content">
+                        <h4 class="critical-alert__title">robots.txt Blocks AI Crawlers</h4>
+                        <p class="critical-alert__desc">
+                            Your robots.txt blocks: <?php echo ! empty( $robots_data['ai_bots_blocked'] ) && is_array( $robots_data['ai_bots_blocked'] ) ? esc_html( implode( ', ', $robots_data['ai_bots_blocked'] ) ) : 'AI crawlers'; ?>
+                        </p>
+                        <a href="https://wordpress.org/plugins/answerenginewp/" class="critical-alert__cta" target="_blank" rel="noopener">
+                            Fix with AEWP's Bot Manager &rarr;
+                        </a>
+                    </div>
+                </div>
+                <?php endif; ?>
+                <?php if ( ! empty( $spa_detection['is_spa'] ) ) : ?>
+                <div class="critical-alert critical-alert--spa">
+                    <div class="critical-alert__icon">&#9888;</div>
+                    <div class="critical-alert__content">
+                        <h4 class="critical-alert__title">Client-Side Rendering Detected</h4>
+                        <p class="critical-alert__desc">Only <?php echo intval( $spa_detection['word_count'] ); ?> words of body text found.</p>
+                    </div>
+                </div>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+
+            <!-- Page Type Context -->
+            <?php if ( ! empty( $page_type ) && 'auto' !== $page_type ) : ?>
+            <div class="page-type-context">
+                <p class="page-type-context__info">
+                    Scored as: <strong><?php echo esc_html( str_replace( '_', ' ', ucfirst( $page_type ) ) ); ?></strong>
+                </p>
+            </div>
+            <?php endif; ?>
+
             <!-- Sub-scores -->
             <?php if ( is_array( $sub_scores ) && ! empty( $sub_scores ) ) : ?>
             <div class="sub-scores">
@@ -138,6 +194,11 @@ get_header();
                             <span class="fix-card__points">+<?php echo intval( $fix['points'] ); ?> pts</span>
                         </div>
                         <p class="fix-card__desc"><?php echo esc_html( $fix['description'] ); ?></p>
+                        <?php if ( ! empty( $fix['aewp_cta'] ) ) : ?>
+                            <a href="https://wordpress.org/plugins/answerenginewp/" class="fix-card__aewp-cta" target="_blank" rel="noopener">
+                                <?php echo esc_html( $fix['aewp_cta'] ); ?> &rarr;
+                            </a>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -193,6 +254,40 @@ get_header();
             </div>
             <?php endif; ?>
 
+            <!-- How AI Sees Your Page -->
+            <?php if ( is_array( $raw_text_data ) && ! empty( $raw_text_data['raw_text'] ) ) : ?>
+            <div class="raw-text-view">
+                <h3 class="raw-text-view__title">How AI Sees Your Page</h3>
+                <pre class="raw-text-view__pre"><?php echo esc_html( $raw_text_data['raw_text'] ); ?></pre>
+                <p class="raw-text-view__cta">Is this a mess? <a href="https://wordpress.org/plugins/answerenginewp/" target="_blank" rel="noopener">Install AnswerEngineWP</a> to generate a clean /llms-docs/ feed.</p>
+            </div>
+            <?php endif; ?>
+
+            <!-- Blindspot Upsell -->
+            <div class="blindspot">
+                <div class="blindspot__icon">&#128269;</div>
+                <h3 class="blindspot__title">You just scanned 1 page</h3>
+                <p class="blindspot__desc">
+                    Your site has dozens (or hundreds) of pages. Each one needs its own schema,
+                    structure, and AI-ready signals. This scanner checked just one.
+                </p>
+                <a href="https://wordpress.org/plugins/answerenginewp/" class="btn btn--primary" target="_blank" rel="noopener">
+                    Audit your entire site with AnswerEngineWP &rarr;
+                </a>
+            </div>
+
+            <!-- Email Gate for PDF -->
+            <div class="email-capture" id="reportEmailCapture">
+                <p class="email-capture__heading">Enter your email to unlock the PDF report</p>
+                <div class="email-capture__form" id="reportEmailForm">
+                    <input type="email" id="reportEmailInput" class="email-capture__input"
+                           placeholder="you@company.com" autocomplete="email">
+                    <button type="button" class="email-capture__submit" id="reportEmailSubmit">Unlock PDF Report</button>
+                </div>
+                <p class="email-capture__note" id="reportEmailNote">We'll email your PDF report + 3 actionable tips. No spam, ever.</p>
+                <p class="email-capture__success" id="reportEmailSuccess" style="display:none">&#10003; PDF unlocked! Check your inbox for the full report.</p>
+            </div>
+
             <!-- CTAs -->
             <div class="scanner-results__ctas">
                 <div class="scanner-results__cta-primary">
@@ -201,7 +296,8 @@ get_header();
                     </a>
                 </div>
                 <div class="scanner-results__cta-actions">
-                    <a href="<?php echo esc_url( rest_url( 'aivs/v1/report/' . $scan_hash ) ); ?>" class="btn btn--outline" target="_blank" rel="noopener">Download PDF Report</a>
+                    <button type="button" class="btn btn--outline btn--locked" id="reportDownloadPdf"
+                            data-pdf-url="<?php echo esc_url( rest_url( 'aivs/v1/report/' . $scan_hash ) ); ?>">&#128274; Download PDF Report</button>
                     <button type="button" class="btn btn--outline" id="shareScoreBtn" data-url="<?php echo esc_url( home_url( '/report/' . $display_domain ) ); ?>">Share Score</button>
                     <button type="button" class="btn btn--outline" id="copyBadgeBtn"
                             data-snippet="<?php echo esc_attr( '<a href="' . home_url( '/report/' . $display_domain ) . '" title="AI Visibility Score: ' . $score . '/100 — ' . $tier['label'] . '" style="display:inline-block;text-decoration:none"><img src="' . rest_url( 'aivs/v1/badge/' . $scan_hash . '.svg?variant=small' ) . '" alt="' . aivs_generate_alt_text( aivs_format_domain( $url ), $score, $tier['label'] ) . '" width="220" height="60"></a>' ); ?>">Copy Badge Snippet</button>
@@ -215,6 +311,82 @@ get_header();
 
 <script>
 (function() {
+    var pdfUnlocked = false;
+
+    // PDF button — gated behind email
+    var pdfBtn = document.getElementById('reportDownloadPdf');
+    var emailCapture = document.getElementById('reportEmailCapture');
+    var emailInput = document.getElementById('reportEmailInput');
+    var emailSubmit = document.getElementById('reportEmailSubmit');
+    var emailForm = document.getElementById('reportEmailForm');
+    var emailNote = document.getElementById('reportEmailNote');
+    var emailSuccess = document.getElementById('reportEmailSuccess');
+    var scanHash = <?php echo wp_json_encode( $scan_hash ); ?>;
+    var emailUrl = <?php echo wp_json_encode( rest_url( 'aivs/v1/email' ) ); ?>;
+
+    if (pdfBtn) {
+        pdfBtn.addEventListener('click', function () {
+            if (pdfUnlocked) {
+                window.open(pdfBtn.getAttribute('data-pdf-url'), '_blank');
+                return;
+            }
+            if (emailCapture) {
+                emailCapture.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                emailCapture.classList.add('email-capture--highlight');
+                setTimeout(function () {
+                    emailCapture.classList.remove('email-capture--highlight');
+                }, 2000);
+                if (emailInput) emailInput.focus();
+            }
+        });
+    }
+
+    if (emailSubmit) {
+        emailSubmit.addEventListener('click', function () {
+            var email = emailInput ? emailInput.value.trim() : '';
+            if (!email || email.indexOf('@') === -1) {
+                if (emailInput) emailInput.style.borderColor = '#EF4444';
+                return;
+            }
+            emailInput.style.borderColor = '';
+            emailSubmit.disabled = true;
+            emailSubmit.textContent = 'Sending\u2026';
+
+            fetch(emailUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, hash: scanHash })
+            }).then(function (res) { return res.json(); })
+              .then(function (result) {
+                if (result.success) {
+                    if (emailForm) emailForm.style.display = 'none';
+                    if (emailNote) emailNote.style.display = 'none';
+                    if (emailSuccess) emailSuccess.style.display = '';
+
+                    // Unlock PDF
+                    pdfUnlocked = true;
+                    if (pdfBtn) {
+                        pdfBtn.textContent = 'Download PDF Report';
+                        pdfBtn.classList.remove('btn--locked');
+                    }
+
+                    // Auto-open PDF
+                    setTimeout(function () {
+                        window.open(pdfBtn.getAttribute('data-pdf-url'), '_blank');
+                    }, 600);
+                } else {
+                    emailSubmit.disabled = false;
+                    emailSubmit.textContent = 'Unlock PDF Report';
+                    if (emailInput) emailInput.style.borderColor = '#EF4444';
+                }
+            }).catch(function () {
+                emailSubmit.disabled = false;
+                emailSubmit.textContent = 'Unlock PDF Report';
+            });
+        });
+    }
+
+    // Share button
     var shareBtn = document.getElementById('shareScoreBtn');
     if (shareBtn) {
         shareBtn.addEventListener('click', function() {
@@ -229,6 +401,8 @@ get_header();
             }
         });
     }
+
+    // Badge button
     var badgeBtn = document.getElementById('copyBadgeBtn');
     if (badgeBtn) {
         badgeBtn.addEventListener('click', function() {

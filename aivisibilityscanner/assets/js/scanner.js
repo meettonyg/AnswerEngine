@@ -18,11 +18,13 @@
 
   var STATUS_MESSAGES = [
     'Fetching page content\u2026',
+    'Checking robots.txt for AI bot access\u2026',
     'Detecting schema types\u2026',
     'Analyzing content structure\u2026',
     'Checking for FAQ blocks\u2026',
     'Measuring entity density\u2026',
     'Detecting knowledge feeds\u2026',
+    'Simulating AI extraction\u2026',
     'Calculating your AI Visibility Score\u2026'
   ];
   var STATUS_OVERTIME = 'Still analyzing \u2014 this page has a lot of content\u2026';
@@ -89,6 +91,20 @@
     els.emailSubmit  = document.getElementById('emailSubmit');
     els.emailSuccess = document.getElementById('emailSuccess');
     els.emailCapture = document.getElementById('emailCapture');
+    els.pageType       = document.getElementById('pageType');
+    els.criticalAlerts = document.getElementById('criticalAlerts');
+    els.robotsAlert    = document.getElementById('robotsAlert');
+    els.robotsAlertDesc = document.getElementById('robotsAlertDesc');
+    els.spaAlert       = document.getElementById('spaAlert');
+    els.spaWordCount   = document.getElementById('spaWordCount');
+    els.rawTextView    = document.getElementById('rawTextView');
+    els.rawTextToggle  = document.getElementById('rawTextToggle');
+    els.rawTextContent = document.getElementById('rawTextContent');
+    els.rawTextPre     = document.getElementById('rawTextPre');
+    els.pageTypeContext = document.getElementById('pageTypeContext');
+    els.pageTypeInfo   = document.getElementById('pageTypeInfo');
+    els.blindspot      = document.getElementById('blindspot');
+    els.terminalBody   = document.getElementById('terminalBody');
   }
 
   // ---------------------------------------------------------------------------
@@ -143,6 +159,15 @@
     statusIndex = 0;
     els.loadingStatus.textContent = STATUS_MESSAGES[0];
 
+    // Clear and populate terminal
+    if (els.terminalBody) {
+      els.terminalBody.innerHTML = '';
+      var line = document.createElement('div');
+      line.className = 'terminal__line';
+      line.textContent = STATUS_MESSAGES[0];
+      els.terminalBody.appendChild(line);
+    }
+
     // Progress bar animation
     var progress = 0;
     var progressTimer = setInterval(function () {
@@ -151,21 +176,23 @@
       els.progressFill.style.width = progress + '%';
     }, 400);
 
-    // Status message cycling
+    // Status message cycling + terminal lines
     statusTimer = setInterval(function () {
       statusIndex++;
-      if (statusIndex < STATUS_MESSAGES.length) {
-        els.loadingStatus.style.opacity = '0';
-        setTimeout(function () {
-          els.loadingStatus.textContent = STATUS_MESSAGES[statusIndex];
-          els.loadingStatus.style.opacity = '1';
-        }, 150);
-      } else {
-        els.loadingStatus.style.opacity = '0';
-        setTimeout(function () {
-          els.loadingStatus.textContent = STATUS_OVERTIME;
-          els.loadingStatus.style.opacity = '1';
-        }, 150);
+      var msg = statusIndex < STATUS_MESSAGES.length ? STATUS_MESSAGES[statusIndex] : STATUS_OVERTIME;
+      els.loadingStatus.style.opacity = '0';
+      setTimeout(function () {
+        els.loadingStatus.textContent = msg;
+        els.loadingStatus.style.opacity = '1';
+      }, 150);
+
+      // Append to terminal
+      if (els.terminalBody) {
+        var tLine = document.createElement('div');
+        tLine.className = 'terminal__line';
+        tLine.textContent = msg;
+        els.terminalBody.appendChild(tLine);
+        els.terminalBody.scrollTop = els.terminalBody.scrollHeight;
       }
     }, STATUS_INTERVAL_MS);
 
@@ -173,6 +200,14 @@
       clearInterval(progressTimer);
       clearInterval(statusTimer);
       els.progressFill.style.width = '100%';
+
+      // Add completion line to terminal
+      if (els.terminalBody) {
+        var doneLine = document.createElement('div');
+        doneLine.className = 'terminal__line';
+        doneLine.textContent = 'Analysis complete!';
+        els.terminalBody.appendChild(doneLine);
+      }
     };
   }
 
@@ -183,6 +218,9 @@
     var body = { url: url };
     if (competitorUrl) {
       body.competitor_url = competitorUrl;
+    }
+    if (els.pageType && els.pageType.value && els.pageType.value !== 'auto') {
+      body.page_type = els.pageType.value;
     }
 
     var headers = { 'Content-Type': 'application/json' };
@@ -255,6 +293,12 @@
       escapeHtml(data.tier_label) + '</span>';
     els.scoreTierMsg.textContent = data.tier_message;
 
+    // Critical alerts (robots.txt + SPA detection)
+    renderCriticalAlerts(data);
+
+    // Page type context
+    renderPageTypeContext(data);
+
     // Sub-scores
     renderSubScores(data.sub_scores);
 
@@ -272,15 +316,38 @@
     // Extraction preview
     renderExtraction(data.extraction);
 
-    // Wire up CTAs
-    if (data.pdf_url) {
+    // How AI Sees You (raw text view)
+    renderRawTextView(data);
+
+    // Blindspot upsell
+    if (els.blindspot) {
+      els.blindspot.style.display = '';
+    }
+
+    // Wire up CTAs — PDF is gated behind email capture
+    var pdfUnlocked = false;
+    var storedPdfUrl = data.pdf_url || '';
+
+    if (els.downloadPdf) {
       els.downloadPdf.onclick = function () {
-        trackEvent('pdf_downloaded');
-        window.open(data.pdf_url, '_blank');
+        if (pdfUnlocked && storedPdfUrl) {
+          trackEvent('pdf_downloaded');
+          window.open(storedPdfUrl, '_blank');
+          return;
+        }
+        // Scroll to email capture and highlight it
+        if (els.emailCapture) {
+          els.emailCapture.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          els.emailCapture.classList.add('email-capture--highlight');
+          setTimeout(function () {
+            els.emailCapture.classList.remove('email-capture--highlight');
+          }, 2000);
+          if (els.emailInput) els.emailInput.focus();
+        }
       };
     }
 
-    if (data.share_url) {
+    if (data.share_url && els.shareScore) {
       els.shareScore.onclick = function () {
         trackEvent('score_shared');
         if (navigator.clipboard) {
@@ -295,7 +362,7 @@
     }
 
     // Badge snippet — available for all scores.
-    if (data.hash) {
+    if (data.hash && els.copyBadge) {
       els.copyBadge.style.display = '';
       els.copyBadge.onclick = function () {
         trackEvent('badge_copied');
@@ -312,11 +379,11 @@
           prompt('Copy this HTML:', snippet);
         }
       };
-    } else {
+    } else if (els.copyBadge) {
       els.copyBadge.style.display = 'none';
     }
 
-    // Email capture
+    // Email capture — gates PDF download
     if (els.emailSubmit && data.hash) {
       els.emailSubmit.onclick = function () {
         var email = els.emailInput ? els.emailInput.value.trim() : '';
@@ -340,14 +407,29 @@
               els.emailCapture.querySelector('.email-capture__note').style.display = 'none';
               els.emailSuccess.style.display = '';
               trackEvent('email_captured');
+
+              // Unlock PDF download
+              pdfUnlocked = true;
+              if (els.downloadPdf) {
+                els.downloadPdf.textContent = 'Download PDF Report';
+                els.downloadPdf.classList.remove('btn--locked');
+              }
+
+              // Auto-open the PDF after a brief delay
+              if (storedPdfUrl) {
+                setTimeout(function () {
+                  trackEvent('pdf_downloaded');
+                  window.open(storedPdfUrl, '_blank');
+                }, 600);
+              }
             } else {
               els.emailSubmit.disabled = false;
-              els.emailSubmit.textContent = 'Send Report';
+              els.emailSubmit.textContent = 'Unlock PDF Report';
               els.emailInput.style.borderColor = '#EF4444';
             }
           }).catch(function () {
             els.emailSubmit.disabled = false;
-            els.emailSubmit.textContent = 'Send Report';
+            els.emailSubmit.textContent = 'Unlock PDF Report';
           });
       };
     }
@@ -387,12 +469,18 @@
     }
     var html = '';
     fixes.forEach(function (fix) {
+      var ctaHtml = '';
+      if (fix.aewp_cta) {
+        ctaHtml = '<a href="https://wordpress.org/plugins/answerenginewp/" class="fix-card__aewp-cta" target="_blank" rel="noopener">' +
+          escapeHtml(fix.aewp_cta) + ' &rarr;</a>';
+      }
       html += '<div class="fix-card">' +
         '<div class="fix-card__header">' +
           '<span class="fix-card__title">' + escapeHtml(fix.title) + '</span>' +
           '<span class="fix-card__points">+' + fix.points + ' pts</span>' +
         '</div>' +
         '<p class="fix-card__desc">' + escapeHtml(fix.description) + '</p>' +
+        ctaHtml +
       '</div>';
     });
     els.fixesList.innerHTML = html;
@@ -424,6 +512,17 @@
         reasonsHtml += '<div class="citation-sim__source ' + iconClass + '">' + icon + ' ' + escapeHtml(reason) + '</div>';
       });
     }
+
+    // Missed citation warnings (per-heading)
+    if (citation.missed_citations && citation.missed_citations.length) {
+      reasonsHtml += '<div class="citation-sim__missed-heading">Missed Citation Opportunities</div>';
+      citation.missed_citations.forEach(function (heading) {
+        reasonsHtml += '<div class="citation-sim__source citation-sim__source--not-cited">' +
+          '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M5 5l4 4M9 5l-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>' +
+          ' &ldquo;' + escapeHtml(heading) + '&rdquo; has no FAQ/HowTo schema</div>';
+      });
+    }
+
     els.citationReasons.innerHTML = reasonsHtml;
   }
 
@@ -535,6 +634,84 @@
       });
     }
     els.extractionMissing.innerHTML = missingHtml || '<p class="text-small" style="color:var(--gray-500)">Nothing missing — great job!</p>';
+  }
+
+  // ---------------------------------------------------------------------------
+  // New render functions
+  // ---------------------------------------------------------------------------
+  function renderCriticalAlerts(data) {
+    if (!els.criticalAlerts) return;
+    var showAlerts = false;
+
+    // Robots.txt alert
+    if (els.robotsAlert && data.robots && data.robots.has_critical_block) {
+      els.robotsAlert.style.display = '';
+      var blocked = data.robots.ai_bots_blocked || [];
+      if (els.robotsAlertDesc) {
+        els.robotsAlertDesc.textContent = 'Your robots.txt blocks these AI crawlers: ' + blocked.join(', ') +
+          '. These bots cannot index your content.';
+      }
+      showAlerts = true;
+    }
+
+    // SPA detection alert
+    if (els.spaAlert && data.spa_detection && data.spa_detection.is_spa) {
+      els.spaAlert.style.display = '';
+      if (els.spaWordCount) {
+        els.spaWordCount.textContent = data.spa_detection.word_count;
+      }
+      showAlerts = true;
+    }
+
+    if (showAlerts) {
+      els.criticalAlerts.style.display = '';
+    }
+  }
+
+  function renderRawTextView(data) {
+    if (!els.rawTextView || !data.raw_text || !data.raw_text.raw_text) return;
+    els.rawTextView.style.display = '';
+    if (els.rawTextPre) {
+      els.rawTextPre.textContent = data.raw_text.raw_text;
+    }
+
+    if (els.rawTextToggle && els.rawTextContent) {
+      els.rawTextToggle.onclick = function () {
+        var isHidden = els.rawTextContent.style.display === 'none';
+        els.rawTextContent.style.display = isHidden ? '' : 'none';
+        els.rawTextToggle.innerHTML = isHidden ? 'Hide &uarr;' : 'Show &darr;';
+      };
+    }
+  }
+
+  function renderPageTypeContext(data) {
+    if (!els.pageTypeContext || !els.pageTypeInfo) return;
+    if (!data.page_type || data.page_type === 'auto') {
+      els.pageTypeContext.style.display = 'none';
+      return;
+    }
+
+    var labels = {
+      homepage: 'Homepage / Brand Page',
+      blog_post: 'Blog Post / Article',
+      product_page: 'Product Page',
+      local_service: 'Local Service Page'
+    };
+
+    var html = '<strong>Page type:</strong> ' + escapeHtml(labels[data.page_type] || data.page_type);
+
+    if (data.page_type_matches && data.page_type_matches.length) {
+      html += '<br><span style="color:#22C55E">\u2713 Found expected: ' + data.page_type_matches.map(escapeHtml).join(', ') + '</span>';
+    }
+
+    if (data.page_type_mismatches && data.page_type_mismatches.length) {
+      data.page_type_mismatches.forEach(function (m) {
+        html += '<br><span style="color:#EAB308">\u26A0 ' + escapeHtml(m) + '</span>';
+      });
+    }
+
+    els.pageTypeInfo.innerHTML = html;
+    els.pageTypeContext.style.display = '';
   }
 
   // ---------------------------------------------------------------------------
@@ -689,6 +866,9 @@
       if (params.get('competitor') && els.compareUrl) {
         els.compareUrl.value = params.get('competitor');
         els.compareUrl.classList.add('is-visible');
+      }
+      if (params.get('page_type') && els.pageType) {
+        els.pageType.value = params.get('page_type');
       }
       // Auto-start scan
       setTimeout(handleScan, 300);
