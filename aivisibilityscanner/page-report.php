@@ -160,16 +160,35 @@ get_header();
             <?php endif; ?>
 
             <!-- Sub-scores -->
+            <?php
+            // AI Visibility Stack layer mapping (fallback when API doesn't provide layer data)
+            $layer_map = [
+                'schema_completeness' => [ 'layer' => 2, 'label' => 'Understanding' ],
+                'content_structure'   => [ 'layer' => 3, 'label' => 'Extractability' ],
+                'faq_coverage'        => [ 'layer' => 3, 'label' => 'Extractability' ],
+                'summary_presence'    => [ 'layer' => 3, 'label' => 'Extractability' ],
+                'feed_readiness'      => [ 'layer' => 1, 'label' => 'Access' ],
+                'entity_density'      => [ 'layer' => 2, 'label' => 'Understanding' ],
+            ];
+            ?>
             <?php if ( is_array( $sub_scores ) && ! empty( $sub_scores ) ) : ?>
             <div class="sub-scores">
                 <h3 class="sub-scores__title">Score Breakdown</h3>
                 <?php foreach ( $sub_scores as $key => $sub ) :
                     if ( ! is_array( $sub ) ) continue;
                     $sub_tier = aivs_get_tier( $sub['score'] );
+                    // Prefer API-provided layer data, fall back to mapping
+                    $layer_num   = isset( $sub['layer'] ) ? $sub['layer'] : ( isset( $layer_map[ $key ] ) ? $layer_map[ $key ]['layer'] : null );
+                    $layer_label = isset( $sub['layer_name'] ) ? $sub['layer_name'] : ( isset( $layer_map[ $key ] ) ? $layer_map[ $key ]['label'] : '' );
                 ?>
                     <div class="sub-score">
                         <div class="sub-score__header">
-                            <span class="sub-score__label"><?php echo esc_html( $sub['label'] ); ?></span>
+                            <span class="sub-score__label">
+                                <?php echo esc_html( $sub['label'] ); ?>
+                                <?php if ( $layer_num ) : ?>
+                                    <span class="sub-score__layer">Layer <?php echo intval( $layer_num ); ?></span>
+                                <?php endif; ?>
+                            </span>
                             <span class="sub-score__value" style="color:<?php echo esc_attr( $sub_tier['color'] ); ?>"><?php echo intval( $sub['score'] ); ?>/100</span>
                         </div>
                         <div class="sub-score__bar">
@@ -177,6 +196,53 @@ get_header();
                         </div>
                     </div>
                 <?php endforeach; ?>
+            </div>
+
+            <!-- AI Visibility Stack Summary -->
+            <?php
+            $layer_1_score = isset( $sub_scores['feed_readiness']['score'] )
+                ? intval( $sub_scores['feed_readiness']['score'] ) : 0;
+
+            $layer_2_score = round( (
+                ( $sub_scores['schema_completeness']['score'] ?? 0 ) +
+                ( $sub_scores['entity_density']['score'] ?? 0 )
+            ) / 2 );
+
+            $layer_3_score = round( (
+                ( $sub_scores['content_structure']['score'] ?? 0 ) +
+                ( $sub_scores['faq_coverage']['score'] ?? 0 ) +
+                ( $sub_scores['summary_presence']['score'] ?? 0 )
+            ) / 3 );
+
+            $stack_layers = [
+                [ 'num' => 1, 'name' => 'Access',          'score' => $layer_1_score, 'future' => false ],
+                [ 'num' => 2, 'name' => 'Understanding',   'score' => $layer_2_score, 'future' => false ],
+                [ 'num' => 3, 'name' => 'Extractability',  'score' => $layer_3_score, 'future' => false ],
+                [ 'num' => 4, 'name' => 'Trust',           'score' => null,           'future' => true ],
+                [ 'num' => 5, 'name' => 'Authority',       'score' => null,           'future' => true ],
+            ];
+            ?>
+            <div class="stack-summary">
+                <h3 class="stack-summary__title">AI Visibility Stack Analysis</h3>
+                <div class="stack-summary__layers">
+                    <?php foreach ( $stack_layers as $sl ) : ?>
+                        <div class="stack-summary__layer<?php echo $sl['future'] ? ' stack-summary__layer--future' : ''; ?>">
+                            <span class="stack-summary__layer-num"><?php echo intval( $sl['num'] ); ?></span>
+                            <span class="stack-summary__layer-name"><?php echo esc_html( $sl['name'] ); ?></span>
+                            <?php if ( $sl['future'] ) : ?>
+                                <span class="stack-summary__layer-score">Coming soon</span>
+                            <?php else :
+                                $sl_tier = aivs_get_tier( $sl['score'] );
+                            ?>
+                                <span class="stack-summary__layer-score" style="color:<?php echo esc_attr( $sl_tier['color'] ); ?>"><?php echo intval( $sl['score'] ); ?>/100</span>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <p class="stack-summary__note">
+                    The AI Visibility Stack shows how AI systems decide which sources to cite.
+                    <a href="<?php echo esc_url( home_url( '/methodology/' ) ); ?>">Learn more &rarr;</a>
+                </p>
             </div>
             <?php endif; ?>
 
@@ -187,10 +253,31 @@ get_header();
                 <p class="fixes__subtitle">Top 3 recommended fixes</p>
                 <?php foreach ( $fixes as $fix ) :
                     if ( ! is_array( $fix ) ) continue;
+                    // Prefer API-provided layer, fallback to keyword inference
+                    $fix_layer_num   = isset( $fix['layer_num'] ) ? intval( $fix['layer_num'] ) : null;
+                    $fix_layer_label = isset( $fix['layer_name'] ) ? $fix['layer_name'] : '';
+                    // SYNC WARNING: This fallback logic is duplicated in assets/js/scanner.js inferFixLayer().
+                    // If you change the keyword list here, update it there too.
+                    // Ideally, the backend API should provide layer_num/layer_name directly.
+                    if ( ! $fix_layer_num ) {
+                        $title_lower = strtolower( $fix['title'] ?? '' );
+                        if ( strpos( $title_lower, 'feed' ) !== false || strpos( $title_lower, 'llms.txt' ) !== false ||
+                             strpos( $title_lower, 'sitemap' ) !== false || strpos( $title_lower, 'manifest' ) !== false ) {
+                            $fix_layer_num = 1; $fix_layer_label = 'Access';
+                        } elseif ( strpos( $title_lower, 'schema' ) !== false || strpos( $title_lower, 'entity' ) !== false ||
+                                   strpos( $title_lower, 'speakable' ) !== false || strpos( $title_lower, 'json-ld' ) !== false ) {
+                            $fix_layer_num = 2; $fix_layer_label = 'Understanding';
+                        } else {
+                            $fix_layer_num = 3; $fix_layer_label = 'Extractability';
+                        }
+                    }
                 ?>
                     <div class="fix-card">
                         <div class="fix-card__header">
-                            <span class="fix-card__title"><?php echo esc_html( $fix['title'] ); ?></span>
+                            <span class="fix-card__title">
+                                <?php echo esc_html( $fix['title'] ); ?>
+                                <span class="fix-card__layer">Layer <?php echo intval( $fix_layer_num ); ?>: <?php echo esc_html( $fix_layer_label ); ?></span>
+                            </span>
                             <span class="fix-card__points">+<?php echo intval( $fix['points'] ); ?> pts</span>
                         </div>
                         <p class="fix-card__desc"><?php echo esc_html( $fix['description'] ); ?></p>

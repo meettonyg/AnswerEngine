@@ -48,6 +48,42 @@
             <div id="subScoresList"></div>
         </div>
 
+        <!-- AI Visibility Stack Summary -->
+        <div class="stack-summary" id="stackSummary" style="display:none">
+            <h3 class="stack-summary__title">AI Visibility Stack Analysis</h3>
+            <div class="stack-summary__layers">
+                <div class="stack-summary__layer" id="stackLayer1">
+                    <span class="stack-summary__layer-num">1</span>
+                    <span class="stack-summary__layer-name">Access</span>
+                    <span class="stack-summary__layer-score" id="stackScore1">&mdash;</span>
+                </div>
+                <div class="stack-summary__layer" id="stackLayer2">
+                    <span class="stack-summary__layer-num">2</span>
+                    <span class="stack-summary__layer-name">Understanding</span>
+                    <span class="stack-summary__layer-score" id="stackScore2">&mdash;</span>
+                </div>
+                <div class="stack-summary__layer" id="stackLayer3">
+                    <span class="stack-summary__layer-num">3</span>
+                    <span class="stack-summary__layer-name">Extractability</span>
+                    <span class="stack-summary__layer-score" id="stackScore3">&mdash;</span>
+                </div>
+                <div class="stack-summary__layer stack-summary__layer--future">
+                    <span class="stack-summary__layer-num">4</span>
+                    <span class="stack-summary__layer-name">Trust</span>
+                    <span class="stack-summary__layer-score">Coming soon</span>
+                </div>
+                <div class="stack-summary__layer stack-summary__layer--future">
+                    <span class="stack-summary__layer-num">5</span>
+                    <span class="stack-summary__layer-name">Authority</span>
+                    <span class="stack-summary__layer-score">Coming soon</span>
+                </div>
+            </div>
+            <p class="stack-summary__note">
+                The AI Visibility Stack shows how AI systems decide which sources to cite.
+                <a href="<?php echo esc_url( home_url( '/methodology/' ) ); ?>">Learn more &rarr;</a>
+            </p>
+        </div>
+
         <!-- Top 3 Fixes -->
         <div class="fixes" id="fixes">
             <h3 class="fixes__title">Your fastest path to AI visibility</h3>
