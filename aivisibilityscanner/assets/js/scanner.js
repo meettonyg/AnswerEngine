@@ -435,6 +435,12 @@
     }
 
     showState('results');
+
+    // Auto-scroll to results so the score gauge animation is front-and-center
+    setTimeout(function () {
+      els.resultsState.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+
     trackEvent('scan_completed');
   }
 
@@ -471,7 +477,11 @@
     fixes.forEach(function (fix) {
       var ctaHtml = '';
       if (fix.aewp_cta) {
-        ctaHtml = '<a href="https://wordpress.org/plugins/answerenginewp/" class="fix-card__aewp-cta" target="_blank" rel="noopener">' +
+        var ctaUrl = 'https://wordpress.org/plugins/answerenginewp/';
+        if (fix.aewp_cta_url && isSafeUrl(fix.aewp_cta_url)) {
+          ctaUrl = fix.aewp_cta_url;
+        }
+        ctaHtml = '<a href="' + escapeHtml(ctaUrl) + '" class="fix-card__aewp-cta" target="_blank" rel="noopener">' +
           escapeHtml(fix.aewp_cta) + ' &rarr;</a>';
       }
       html += '<div class="fix-card">' +
@@ -721,6 +731,16 @@
     var div = document.createElement('div');
     div.appendChild(document.createTextNode(str));
     return div.innerHTML;
+  }
+
+  function isSafeUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    try {
+      var parsed = new URL(url);
+      return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+    } catch (e) {
+      return false;
+    }
   }
 
   function trackEvent(name) {
