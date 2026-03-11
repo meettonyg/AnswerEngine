@@ -169,50 +169,20 @@ get_header();
                 'summary_presence'    => [ 'layer' => 3, 'label' => 'Extractability' ],
                 'feed_readiness'      => [ 'layer' => 1, 'label' => 'Access' ],
                 'entity_density'      => [ 'layer' => 2, 'label' => 'Understanding' ],
+                'speakable_markup'    => [ 'layer' => 2, 'label' => 'Understanding' ],
             ];
             ?>
             <?php if ( is_array( $sub_scores ) && ! empty( $sub_scores ) ) : ?>
-            <div class="sub-scores">
-                <h3 class="sub-scores__title">Score Breakdown</h3>
-                <?php foreach ( $sub_scores as $key => $sub ) :
-                    if ( ! is_array( $sub ) ) continue;
-                    $sub_tier = aivs_get_tier( $sub['score'] );
-                    // Prefer API-provided layer data, fall back to mapping
-                    $layer_num   = isset( $sub['layer'] ) ? $sub['layer'] : ( isset( $layer_map[ $key ] ) ? $layer_map[ $key ]['layer'] : null );
-                    $layer_label = isset( $sub['layer_name'] ) ? $sub['layer_name'] : ( isset( $layer_map[ $key ] ) ? $layer_map[ $key ]['label'] : '' );
-                ?>
-                    <div class="sub-score">
-                        <div class="sub-score__header">
-                            <span class="sub-score__label">
-                                <?php echo esc_html( $sub['label'] ); ?>
-                                <?php if ( $layer_num ) : ?>
-                                    <span class="sub-score__layer">Layer <?php echo intval( $layer_num ); ?></span>
-                                <?php endif; ?>
-                            </span>
-                            <span class="sub-score__value" style="color:<?php echo esc_attr( $sub_tier['color'] ); ?>"><?php echo intval( $sub['score'] ); ?>/100</span>
-                        </div>
-                        <div class="sub-score__bar">
-                            <div class="sub-score__fill" style="width:<?php echo intval( $sub['score'] ); ?>%;background:<?php echo esc_attr( $sub_tier['color'] ); ?>"></div>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-
             <!-- AI Visibility Stack Summary -->
             <?php
-            $layer_1_score = isset( $sub_scores['feed_readiness']['score'] )
-                ? intval( $sub_scores['feed_readiness']['score'] ) : 0;
+            $layer_scores = get_post_meta( $scan->ID, '_aivs_layer_scores', true );
+            if ( ! is_array( $layer_scores ) || empty( $layer_scores ) ) {
+                $layer_scores = aivs_calculate_layer_scores( $sub_scores );
+            }
 
-            $layer_2_score = round( (
-                ( $sub_scores['schema_completeness']['score'] ?? 0 ) +
-                ( $sub_scores['entity_density']['score'] ?? 0 )
-            ) / 2 );
-
-            $layer_3_score = round( (
-                ( $sub_scores['content_structure']['score'] ?? 0 ) +
-                ( $sub_scores['faq_coverage']['score'] ?? 0 ) +
-                ( $sub_scores['summary_presence']['score'] ?? 0 )
-            ) / 3 );
+            $layer_1_score = intval( $layer_scores['layer_1_access']['score'] ?? 0 );
+            $layer_2_score = intval( $layer_scores['layer_2_understanding']['score'] ?? 0 );
+            $layer_3_score = intval( $layer_scores['layer_3_extractability']['score'] ?? 0 );
 
             $stack_layers = [
                 [ 'num' => 1, 'name' => 'Access',          'score' => $layer_1_score, 'future' => false ],
@@ -240,9 +210,35 @@ get_header();
                     <?php endforeach; ?>
                 </div>
                 <p class="stack-summary__note">
-                    The AI Visibility Stack shows how AI systems decide which sources to cite.
+                    The AI Visibility Stack shows how AI systems decide which sources to cite. Layer 3 is your citation gate.
                     <a href="<?php echo esc_url( home_url( '/methodology/' ) ); ?>">Learn more &rarr;</a>
                 </p>
+            </div>
+
+            <div class="sub-scores">
+                <h3 class="sub-scores__title">Score Breakdown</h3>
+                <?php foreach ( $sub_scores as $key => $sub ) :
+                    if ( ! is_array( $sub ) ) continue;
+                    $sub_tier = aivs_get_tier( $sub['score'] );
+                    // Prefer API-provided layer data, fall back to mapping
+                    $layer_num   = isset( $sub['layer'] ) ? $sub['layer'] : ( isset( $layer_map[ $key ] ) ? $layer_map[ $key ]['layer'] : null );
+                    $layer_label = isset( $sub['layer_name'] ) ? $sub['layer_name'] : ( isset( $layer_map[ $key ] ) ? $layer_map[ $key ]['label'] : '' );
+                ?>
+                    <div class="sub-score">
+                        <div class="sub-score__header">
+                            <span class="sub-score__label">
+                                <?php echo esc_html( $sub['label'] ); ?>
+                                <?php if ( $layer_num ) : ?>
+                                    <span class="sub-score__layer">Layer <?php echo intval( $layer_num ); ?></span>
+                                <?php endif; ?>
+                            </span>
+                            <span class="sub-score__value" style="color:<?php echo esc_attr( $sub_tier['color'] ); ?>"><?php echo intval( $sub['score'] ); ?>/100</span>
+                        </div>
+                        <div class="sub-score__bar">
+                            <div class="sub-score__fill" style="width:<?php echo intval( $sub['score'] ); ?>%;background:<?php echo esc_attr( $sub_tier['color'] ); ?>"></div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
             </div>
             <?php endif; ?>
 

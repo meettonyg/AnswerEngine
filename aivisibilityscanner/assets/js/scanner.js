@@ -18,12 +18,14 @@
 
   var STATUS_MESSAGES = [
     'Fetching page content\u2026',
+    'Checking Layer 1: Access\u2026',
     'Checking robots.txt for AI bot access\u2026',
+    'Analyzing Layer 2: Understanding\u2026',
     'Detecting schema types\u2026',
+    'Measuring entity density\u2026',
+    'Optimizing Layer 3: Extractability\u2026',
     'Analyzing content structure\u2026',
     'Checking for FAQ blocks\u2026',
-    'Measuring entity density\u2026',
-    'Detecting knowledge feeds\u2026',
     'Simulating AI extraction\u2026',
     'Calculating your AI Visibility Score\u2026'
   ];
@@ -49,7 +51,8 @@
     'faq_coverage':        { layer: 3, label: 'Extractability' },
     'summary_presence':    { layer: 3, label: 'Extractability' },
     'feed_readiness':      { layer: 1, label: 'Access' },
-    'entity_density':      { layer: 2, label: 'Understanding' }
+    'entity_density':      { layer: 2, label: 'Understanding' },
+    'speakable_markup':    { layer: 2, label: 'Understanding' }
   };
 
   function getLayerInfo(key, sub) {
@@ -326,7 +329,7 @@
     renderSubScores(data.sub_scores);
 
     // AI Visibility Stack summary
-    renderStackSummary(data.sub_scores);
+    renderStackSummary(data.sub_scores, data.layer_scores);
 
     // Fixes
     renderFixes(data.fixes, data.projected_score);
@@ -498,23 +501,13 @@
     return getTierForScore(score).color;
   }
 
-  function renderStackSummary(subScores) {
+  function renderStackSummary(subScores, layerScores) {
     var stackEl = document.getElementById('stackSummary');
     if (!stackEl) return;
 
-    // Layer 1: Access = feed_readiness
-    var layer1 = subScores.feed_readiness ? subScores.feed_readiness.score : 0;
-
-    // Layer 2: Understanding = avg(schema_completeness, entity_density)
-    var schemaScore = subScores.schema_completeness ? subScores.schema_completeness.score : 0;
-    var entityScore = subScores.entity_density ? subScores.entity_density.score : 0;
-    var layer2 = Math.round((schemaScore + entityScore) / 2);
-
-    // Layer 3: Extractability = avg(content_structure, faq_coverage, summary_presence)
-    var structScore = subScores.content_structure ? subScores.content_structure.score : 0;
-    var faqScore = subScores.faq_coverage ? subScores.faq_coverage.score : 0;
-    var summaryScore = subScores.summary_presence ? subScores.summary_presence.score : 0;
-    var layer3 = Math.round((structScore + faqScore + summaryScore) / 3);
+    var layer1 = layerScores && layerScores.layer_1_access ? layerScores.layer_1_access.score : (subScores.feed_readiness ? subScores.feed_readiness.score : 0);
+    var layer2 = layerScores && layerScores.layer_2_understanding ? layerScores.layer_2_understanding.score : Math.round(((subScores.schema_completeness ? subScores.schema_completeness.score : 0) + (subScores.entity_density ? subScores.entity_density.score : 0) + (subScores.speakable_markup ? subScores.speakable_markup.score : 0)) / 3);
+    var layer3 = layerScores && layerScores.layer_3_extractability ? layerScores.layer_3_extractability.score : Math.round(((subScores.content_structure ? subScores.content_structure.score : 0) + (subScores.faq_coverage ? subScores.faq_coverage.score : 0) + (subScores.summary_presence ? subScores.summary_presence.score : 0)) / 3);
 
     var layers = [
       { id: 'stackScore1', score: layer1 },
@@ -530,6 +523,11 @@
         el.style.color = tier.color;
       }
     });
+
+    var layer3El = document.getElementById('stackLayer3');
+    if (layer3El) {
+      layer3El.setAttribute('title', 'Layer 3 is the Citation Gate');
+    }
 
     stackEl.style.display = '';
   }
