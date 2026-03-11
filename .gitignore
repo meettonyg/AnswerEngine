@@ -3,7 +3,6 @@ vendor/
 
 # Zip build artifacts
 *.zip
-aivs-scanner/
 
 # Build scripts
 build-*.ps1

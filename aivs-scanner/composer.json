@@ -1,0 +1,11 @@
+{
+    "name": "aivisibilityscanner/scanner-plugin",
+    "description": "AI Visibility Scanner plugin — scanning engine, REST API, PDF reports",
+    "type": "wordpress-plugin",
+    "require": {
+        "dompdf/dompdf": "^2.0"
+    },
+    "config": {
+        "vendor-dir": "vendor"
+    }
+}
