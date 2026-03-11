@@ -256,6 +256,9 @@ get_header();
                     // Prefer API-provided layer, fallback to keyword inference
                     $fix_layer_num   = isset( $fix['layer_num'] ) ? intval( $fix['layer_num'] ) : null;
                     $fix_layer_label = isset( $fix['layer_name'] ) ? $fix['layer_name'] : '';
+                    // SYNC WARNING: This fallback logic is duplicated in assets/js/scanner.js inferFixLayer().
+                    // If you change the keyword list here, update it there too.
+                    // Ideally, the backend API should provide layer_num/layer_name directly.
                     if ( ! $fix_layer_num ) {
                         $title_lower = strtolower( $fix['title'] ?? '' );
                         if ( strpos( $title_lower, 'feed' ) !== false || strpos( $title_lower, 'llms.txt' ) !== false ||

@@ -80,7 +80,7 @@
             </div>
             <p class="stack-summary__note">
                 The AI Visibility Stack shows how AI systems decide which sources to cite.
-                <a href="/methodology/">Learn more &rarr;</a>
+                <a href="<?php echo esc_url( home_url( '/methodology/' ) ); ?>">Learn more &rarr;</a>
             </p>
         </div>
 

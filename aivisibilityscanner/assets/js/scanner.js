@@ -479,7 +479,7 @@
       var color = getSubScoreColor(sub.score);
       var layerInfo = getLayerInfo(key, sub);
       var layerHtml = layerInfo
-        ? ' <span class="sub-score__layer">Layer ' + layerInfo.layer + '</span>'
+        ? ' <span class="sub-score__layer">Layer ' + escapeHtml(layerInfo.layer) + '</span>'
         : '';
       html += '<div class="sub-score">' +
         '<div class="sub-score__header">' +
@@ -534,6 +534,9 @@
     stackEl.style.display = '';
   }
 
+  // SYNC WARNING: This fallback logic is duplicated in page-report.php.
+  // If you change the keyword list here, update it there too.
+  // Ideally, the backend API should provide layer_num/layer_name directly.
   function inferFixLayer(fix) {
     // Prefer API-provided layer data (Gemini feedback: backend-driven)
     if (fix.layer_num && fix.layer_name) {
@@ -571,7 +574,7 @@
           escapeHtml(fix.aewp_cta) + ' &rarr;</a>';
       }
       var fixLayer = inferFixLayer(fix);
-      var layerBadge = '<span class="fix-card__layer">Layer ' + fixLayer.num + ': ' + escapeHtml(fixLayer.label) + '</span>';
+      var layerBadge = '<span class="fix-card__layer">Layer ' + escapeHtml(fixLayer.num) + ': ' + escapeHtml(fixLayer.label) + '</span>';
       html += '<div class="fix-card">' +
         '<div class="fix-card__header">' +
           '<span class="fix-card__title">' + escapeHtml(fix.title) + layerBadge + '</span>' +
