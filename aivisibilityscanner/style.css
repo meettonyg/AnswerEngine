@@ -2835,3 +2835,268 @@ h2 {
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   AI Visibility Stack — Methodology Page Diagram
+   ========================================================================== */
+
+.stack-diagram {
+  background: var(--navy);
+  border-radius: 16px;
+  padding: 32px;
+  margin: 32px 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  color: var(--gray-300);
+  overflow-x: auto;
+}
+
+.stack-diagram__layer {
+  padding: 16px 20px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stack-diagram__layer--access {
+  background: rgba(239, 68, 68, 0.1);
+  border-left: 4px solid var(--tier-red);
+}
+
+.stack-diagram__layer--understanding {
+  background: rgba(234, 179, 8, 0.1);
+  border-left: 4px solid var(--tier-amber);
+}
+
+.stack-diagram__layer--extractability {
+  background: rgba(59, 130, 246, 0.1);
+  border-left: 4px solid var(--tier-blue);
+}
+
+.stack-diagram__layer--trust {
+  background: rgba(34, 197, 94, 0.08);
+  border-left: 4px solid var(--tier-green);
+  opacity: 0.5;
+}
+
+.stack-diagram__layer--authority {
+  background: rgba(34, 197, 94, 0.04);
+  border-left: 4px solid var(--tier-green);
+  opacity: 0.35;
+}
+
+.stack-diagram__layer-name {
+  font-weight: 600;
+  color: var(--white);
+}
+
+.stack-diagram__layer-question {
+  font-size: 12px;
+  color: var(--gray-400);
+}
+
+.stack-diagram__layer-status {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+
+.stack-diagram__layer-status--measured {
+  background: rgba(37, 99, 235, 0.2);
+  color: var(--blue);
+}
+
+.stack-diagram__layer-status--planned {
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--gray-400);
+}
+
+.stack-diagram__dependency-note {
+  text-align: center;
+  font-size: 12px;
+  color: var(--gray-500);
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+/* ==========================================================================
+   AI Visibility Stack — Sub-Score Layer Badges
+   ========================================================================== */
+
+.sub-score__layer {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 100px;
+  background: rgba(255,255,255,0.06);
+  color: var(--gray-400);
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* ==========================================================================
+   AI Visibility Stack — Stack Summary Card (Results + Report)
+   ========================================================================== */
+
+.stack-summary {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 48px;
+}
+
+.stack-summary__title {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--white);
+  margin-bottom: 20px;
+}
+
+.stack-summary__layers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stack-summary__layer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.03);
+}
+
+.stack-summary__layer--future {
+  opacity: 0.4;
+}
+
+.stack-summary__layer-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--blue);
+  width: 20px;
+  text-align: center;
+}
+
+.stack-summary__layer-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-300);
+  flex: 1;
+}
+
+.stack-summary__layer-score {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.stack-summary__note {
+  font-size: 13px;
+  color: var(--gray-500);
+  margin-top: 16px;
+  text-align: center;
+}
+
+.stack-summary__note a {
+  color: var(--blue);
+}
+
+/* ==========================================================================
+   AI Visibility Stack — Fix Card Layer Badge
+   ========================================================================== */
+
+.fix-card__layer {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 100px;
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--blue);
+  margin-left: 8px;
+}
+
+/* ==========================================================================
+   AI Visibility Stack — Methodology Page Specific
+   ========================================================================== */
+
+.methodology-signals-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 24px 0;
+  font-size: 14px;
+}
+
+.methodology-signals-table th,
+.methodology-signals-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.methodology-signals-table th {
+  font-weight: 600;
+  color: var(--gray-700);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.methodology-signals-table td {
+  color: var(--gray-700);
+}
+
+.methodology-signals-table tr:last-child td {
+  border-bottom: none;
+  font-weight: 600;
+}
+
+.methodology-layer-map {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.8;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 24px 28px;
+  margin: 24px 0;
+  white-space: pre-wrap;
+  color: var(--gray-700);
+}
+
+.methodology-tier {
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border-left: 4px solid;
+}
+
+.methodology-tier--invisible {
+  background: rgba(239, 68, 68, 0.06);
+  border-color: var(--tier-red);
+}
+
+.methodology-tier--readable {
+  background: rgba(234, 179, 8, 0.06);
+  border-color: var(--tier-amber);
+}
+
+.methodology-tier--extractable {
+  background: rgba(59, 130, 246, 0.06);
+  border-color: var(--tier-blue);
+}
+
+.methodology-tier--authority {
+  background: rgba(34, 197, 94, 0.06);
+  border-color: var(--tier-green);
+}

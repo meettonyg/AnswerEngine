@@ -38,6 +38,28 @@
     { min: 0, key: 'invisible', label: 'Invisible to AI', color: '#EF4444', class: 'tier-red' }
   ];
 
+  // ---------------------------------------------------------------------------
+  // AI Visibility Stack — Layer mapping
+  // Fallback used only when the API doesn't include layer metadata.
+  // Prefer API-provided sub.layer / sub.layer_name when available.
+  // ---------------------------------------------------------------------------
+  var LAYER_MAP_FALLBACK = {
+    'schema_completeness': { layer: 2, label: 'Understanding' },
+    'content_structure':   { layer: 3, label: 'Extractability' },
+    'faq_coverage':        { layer: 3, label: 'Extractability' },
+    'summary_presence':    { layer: 3, label: 'Extractability' },
+    'feed_readiness':      { layer: 1, label: 'Access' },
+    'entity_density':      { layer: 2, label: 'Understanding' }
+  };
+
+  function getLayerInfo(key, sub) {
+    // Prefer API-provided layer data (Gemini feedback: backend-driven)
+    if (sub && sub.layer && sub.layer_name) {
+      return { layer: sub.layer, label: sub.layer_name };
+    }
+    return LAYER_MAP_FALLBACK[key] || null;
+  }
+
   function getTierForScore(score) {
     for (var i = 0; i < TIER_CONFIG.length; i++) {
       if (score >= TIER_CONFIG[i].min) return TIER_CONFIG[i];
@@ -105,6 +127,7 @@
     els.pageTypeInfo   = document.getElementById('pageTypeInfo');
     els.blindspot      = document.getElementById('blindspot');
     els.terminalBody   = document.getElementById('terminalBody');
+    els.stackSummary   = document.getElementById('stackSummary');
   }
 
   // ---------------------------------------------------------------------------
@@ -302,6 +325,9 @@
     // Sub-scores
     renderSubScores(data.sub_scores);
 
+    // AI Visibility Stack summary
+    renderStackSummary(data.sub_scores);
+
     // Fixes
     renderFixes(data.fixes, data.projected_score);
 
@@ -451,9 +477,13 @@
       var sub = subScores[key];
       if (!sub) return;
       var color = getSubScoreColor(sub.score);
+      var layerInfo = getLayerInfo(key, sub);
+      var layerHtml = layerInfo
+        ? ' <span class="sub-score__layer">Layer ' + layerInfo.layer + '</span>'
+        : '';
       html += '<div class="sub-score">' +
         '<div class="sub-score__header">' +
-          '<span class="sub-score__label">' + escapeHtml(sub.label) + '</span>' +
+          '<span class="sub-score__label">' + escapeHtml(sub.label) + layerHtml + '</span>' +
           '<span class="sub-score__value" style="color:' + color + '">' + sub.score + '/100</span>' +
         '</div>' +
         '<div class="sub-score__bar">' +
@@ -466,6 +496,62 @@
 
   function getSubScoreColor(score) {
     return getTierForScore(score).color;
+  }
+
+  function renderStackSummary(subScores) {
+    var stackEl = document.getElementById('stackSummary');
+    if (!stackEl) return;
+
+    // Layer 1: Access = feed_readiness
+    var layer1 = subScores.feed_readiness ? subScores.feed_readiness.score : 0;
+
+    // Layer 2: Understanding = avg(schema_completeness, entity_density)
+    var schemaScore = subScores.schema_completeness ? subScores.schema_completeness.score : 0;
+    var entityScore = subScores.entity_density ? subScores.entity_density.score : 0;
+    var layer2 = Math.round((schemaScore + entityScore) / 2);
+
+    // Layer 3: Extractability = avg(content_structure, faq_coverage, summary_presence)
+    var structScore = subScores.content_structure ? subScores.content_structure.score : 0;
+    var faqScore = subScores.faq_coverage ? subScores.faq_coverage.score : 0;
+    var summaryScore = subScores.summary_presence ? subScores.summary_presence.score : 0;
+    var layer3 = Math.round((structScore + faqScore + summaryScore) / 3);
+
+    var layers = [
+      { id: 'stackScore1', score: layer1 },
+      { id: 'stackScore2', score: layer2 },
+      { id: 'stackScore3', score: layer3 }
+    ];
+
+    layers.forEach(function (l) {
+      var el = document.getElementById(l.id);
+      if (el) {
+        var tier = getTierForScore(l.score);
+        el.textContent = l.score + '/100';
+        el.style.color = tier.color;
+      }
+    });
+
+    stackEl.style.display = '';
+  }
+
+  function inferFixLayer(fix) {
+    // Prefer API-provided layer data (Gemini feedback: backend-driven)
+    if (fix.layer_num && fix.layer_name) {
+      return { num: fix.layer_num, label: fix.layer_name };
+    }
+    // Fallback: keyword-based inference (only used if API doesn't provide layer)
+    var title = (fix.title || '').toLowerCase();
+    if (title.indexOf('feed') !== -1 || title.indexOf('llms.txt') !== -1 ||
+        title.indexOf('sitemap') !== -1 || title.indexOf('robots') !== -1 ||
+        title.indexOf('manifest') !== -1) {
+      return { num: 1, label: 'Access' };
+    }
+    if (title.indexOf('schema') !== -1 || title.indexOf('entity') !== -1 ||
+        title.indexOf('speakable') !== -1 || title.indexOf('organization') !== -1 ||
+        title.indexOf('person') !== -1 || title.indexOf('json-ld') !== -1) {
+      return { num: 2, label: 'Understanding' };
+    }
+    return { num: 3, label: 'Extractability' };
   }
 
   function renderFixes(fixes, projectedScore) {
@@ -484,9 +570,11 @@
         ctaHtml = '<a href="' + escapeHtml(ctaUrl) + '" class="fix-card__aewp-cta" target="_blank" rel="noopener">' +
           escapeHtml(fix.aewp_cta) + ' &rarr;</a>';
       }
+      var fixLayer = inferFixLayer(fix);
+      var layerBadge = '<span class="fix-card__layer">Layer ' + fixLayer.num + ': ' + escapeHtml(fixLayer.label) + '</span>';
       html += '<div class="fix-card">' +
         '<div class="fix-card__header">' +
-          '<span class="fix-card__title">' + escapeHtml(fix.title) + '</span>' +
+          '<span class="fix-card__title">' + escapeHtml(fix.title) + layerBadge + '</span>' +
           '<span class="fix-card__points">+' + fix.points + ' pts</span>' +
         '</div>' +
         '<p class="fix-card__desc">' + escapeHtml(fix.description) + '</p>' +
