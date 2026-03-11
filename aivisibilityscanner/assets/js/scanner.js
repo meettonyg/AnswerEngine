@@ -505,9 +505,13 @@
     var stackEl = document.getElementById('stackSummary');
     if (!stackEl) return;
 
-    var layer1 = layerScores && layerScores.layer_1_access ? layerScores.layer_1_access.score : (subScores.feed_readiness ? subScores.feed_readiness.score : 0);
-    var layer2 = layerScores && layerScores.layer_2_understanding ? layerScores.layer_2_understanding.score : Math.round(((subScores.schema_completeness ? subScores.schema_completeness.score : 0) + (subScores.entity_density ? subScores.entity_density.score : 0) + (subScores.speakable_markup ? subScores.speakable_markup.score : 0)) / 3);
-    var layer3 = layerScores && layerScores.layer_3_extractability ? layerScores.layer_3_extractability.score : Math.round(((subScores.content_structure ? subScores.content_structure.score : 0) + (subScores.faq_coverage ? subScores.faq_coverage.score : 0) + (subScores.summary_presence ? subScores.summary_presence.score : 0)) / 3);
+    var getScore = function (key) {
+      return subScores && subScores[key] ? subScores[key].score : 0;
+    };
+
+    var layer1 = layerScores && layerScores.layer_1_access ? layerScores.layer_1_access.score : getScore('feed_readiness');
+    var layer2 = layerScores && layerScores.layer_2_understanding ? layerScores.layer_2_understanding.score : Math.round((getScore('schema_completeness') + getScore('entity_density') + getScore('speakable_markup')) / 3);
+    var layer3 = layerScores && layerScores.layer_3_extractability ? layerScores.layer_3_extractability.score : Math.round((getScore('content_structure') + getScore('faq_coverage') + getScore('summary_presence')) / 3);
 
     var layers = [
       { id: 'stackScore1', score: layer1 },
