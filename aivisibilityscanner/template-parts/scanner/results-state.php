@@ -42,12 +42,6 @@
             <p class="page-type-context__info" id="pageTypeInfo"></p>
         </div>
 
-        <!-- Sub-scores -->
-        <div class="sub-scores" id="subScores">
-            <h3 class="sub-scores__title">Score Breakdown</h3>
-            <div id="subScoresList"></div>
-        </div>
-
         <!-- AI Visibility Stack Summary -->
         <div class="stack-summary" id="stackSummary" style="display:none">
             <h3 class="stack-summary__title">AI Visibility Stack Analysis</h3>
@@ -79,9 +73,15 @@
                 </div>
             </div>
             <p class="stack-summary__note">
-                The AI Visibility Stack shows how AI systems decide which sources to cite.
+                The AI Visibility Stack shows how AI systems decide which sources to cite. Layer 3 is your citation gate.
                 <a href="<?php echo esc_url( home_url( '/methodology/' ) ); ?>">Learn more &rarr;</a>
             </p>
+        </div>
+
+        <!-- Sub-scores -->
+        <div class="sub-scores" id="subScores">
+            <h3 class="sub-scores__title">Score Breakdown</h3>
+            <div id="subScoresList"></div>
         </div>
 
         <!-- Top 3 Fixes -->

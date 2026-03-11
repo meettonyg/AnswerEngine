@@ -21,7 +21,7 @@ define( 'AIVS_TIER_CONFIG', array(
 		'color'   => '#22C55E',
 		'css_var' => '--tier-green',
 		'class'   => 'tier-green',
-		'message' => 'Your site is fully optimized for AI extraction and citation. AI systems treat your content as a trusted, authoritative source. You are an AI authority in your space.',
+		'message' => 'Your Visibility Stack is healthy across Access, Understanding, and Extractability. AI systems treat your content as a trusted, authoritative source.',
 	),
 	array(
 		'min'     => 70,
@@ -30,7 +30,7 @@ define( 'AIVS_TIER_CONFIG', array(
 		'color'   => '#3B82F6',
 		'css_var' => '--tier-blue',
 		'class'   => 'tier-blue',
-		'message' => 'AI systems can extract and structure your content effectively. You\'re close to becoming a preferred citation source — a few structural improvements separate you from authority status.',
+		'message' => 'You are strong across Layers 1-3 of the Visibility Stack. With a few refinements to Layer 3 (Extractability), you can become a preferred citation source.',
 	),
 	array(
 		'min'     => 40,
@@ -39,7 +39,7 @@ define( 'AIVS_TIER_CONFIG', array(
 		'color'   => '#EAB308',
 		'css_var' => '--tier-amber',
 		'class'   => 'tier-amber',
-		'message' => 'AI systems can find your content, but they\'re choosing better-structured competitors to cite. You\'re in the room — but you\'re not being quoted.',
+		'message' => 'You have likely passed Layer 1 (Access), but your Visibility Stack is weak in Layer 3 (Extractability). AI can find you, but struggles to cite you.',
 	),
 	array(
 		'min'     => 0,
@@ -48,7 +48,7 @@ define( 'AIVS_TIER_CONFIG', array(
 		'color'   => '#EF4444',
 		'css_var' => '--tier-red',
 		'class'   => 'tier-red',
-		'message' => 'ChatGPT cannot reliably extract or cite your site. Better-structured competitors are more likely to be cited while your content goes unread by the systems your audience increasingly trusts.',
+		'message' => 'Your Visibility Stack is failing early in Layer 1 and Layer 2. AI systems cannot reliably access or understand your content yet.',
 	),
 ) );
 
