@@ -84,10 +84,10 @@
 
     var WAITLIST_URL = (typeof aivsScanner !== 'undefined' && aivsScanner.waitlistUrl)
         ? aivsScanner.waitlistUrl
-        : '/wp-json/aivs/v1/waitlist';
+        : '<?php echo esc_url_raw( rest_url( 'aivs/v1/waitlist' ) ); ?>';
     var NONCE = (typeof aivsScanner !== 'undefined' && aivsScanner.nonce)
         ? aivsScanner.nonce
-        : '';
+        : '<?php echo esc_js( wp_create_nonce( 'wp_rest' ) ); ?>';
 
     if (!submitBtn) return;
 
