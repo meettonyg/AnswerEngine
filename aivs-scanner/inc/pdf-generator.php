@@ -32,10 +32,11 @@ function aivs_generate_pdf( $scan ) {
     $hash          = get_post_meta( $scan->ID, '_aivs_hash', true );
     $scanned_at    = get_post_meta( $scan->ID, '_aivs_scanned_at', true );
     $competitor    = get_post_meta( $scan->ID, '_aivs_competitor_data', true );
-    $robots_data   = get_post_meta( $scan->ID, '_aivs_robots_data', true );
-    $spa_detection = get_post_meta( $scan->ID, '_aivs_spa_detection', true );
-    $raw_text_data = get_post_meta( $scan->ID, '_aivs_raw_text', true );
-    $page_type     = get_post_meta( $scan->ID, '_aivs_page_type', true );
+    $robots_data       = get_post_meta( $scan->ID, '_aivs_robots_data', true );
+    $spa_detection     = get_post_meta( $scan->ID, '_aivs_spa_detection', true );
+    $raw_text_data     = get_post_meta( $scan->ID, '_aivs_raw_text', true );
+    $page_type         = get_post_meta( $scan->ID, '_aivs_page_type', true );
+    $citation_sim      = get_post_meta( $scan->ID, '_aivs_citation_simulation', true );
 
     $tier_data = aivs_get_tier( $score );
 
@@ -54,6 +55,7 @@ function aivs_generate_pdf( $scan ) {
         'spa_detection' => $spa_detection ?: array(),
         'raw_text'      => $raw_text_data ?: array(),
         'page_type'     => $page_type ?: 'auto',
+        'citation'      => $citation_sim ?: array(),
     ) );
 
     // Generate PDF
@@ -110,6 +112,7 @@ function aivs_generate_pdf_fallback( $scan ) {
         'spa_detection' => get_post_meta( $scan->ID, '_aivs_spa_detection', true ) ?: array(),
         'raw_text'      => get_post_meta( $scan->ID, '_aivs_raw_text', true ) ?: array(),
         'page_type'     => get_post_meta( $scan->ID, '_aivs_page_type', true ) ?: 'auto',
+        'citation'      => get_post_meta( $scan->ID, '_aivs_citation_simulation', true ) ?: array(),
     ) );
 
     // Save as HTML (fallback when no PDF lib available)
@@ -172,6 +175,24 @@ function aivs_build_pdf_html( $data ) {
         .critical-alert-box--spa { background: #FFF7ED; border-color: #F59E0B; }
         .critical-alert-box--spa h3 { color: #F59E0B; }
         .raw-text-box { background: #1E293B; color: #CBD5E1; font-family: monospace; font-size: 11px; padding: 16px; border-radius: 8px; white-space: pre-wrap; word-wrap: break-word; max-height: 400px; overflow: hidden; }
+        .sub-score-layer { font-size: 11px; color: #94A3B8; font-weight: normal; margin-left: 8px; }
+        .scope-line { font-size: 12px; color: #94A3B8; text-align: center; margin-top: 8px; }
+        .stack-layer { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; margin-bottom: 8px; border-radius: 8px; background: #F8FAFC; }
+        .stack-layer--future { opacity: 0.5; }
+        .stack-layer__name { font-size: 14px; font-weight: 600; color: #0F172A; }
+        .stack-layer__num { display: inline-block; width: 24px; height: 24px; border-radius: 50%; background: #E2E8F0; text-align: center; line-height: 24px; font-size: 12px; font-weight: 600; color: #334155; margin-right: 10px; }
+        .stack-layer__score { font-size: 16px; font-weight: 600; }
+        .stack-layer__future-label { font-size: 13px; color: #94A3B8; font-style: italic; }
+        .citation-card { background: #F8FAFC; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+        .citation-badge { display: inline-block; background: #E2E8F0; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 600; color: #64748B; text-transform: uppercase; margin-bottom: 12px; }
+        .citation-prompt { font-size: 14px; color: #64748B; font-style: italic; margin-bottom: 12px; }
+        .citation-verdict { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+        .citation-verdict--yes { color: #10B981; }
+        .citation-verdict--no { color: #EF4444; }
+        .citation-reason { font-size: 13px; padding: 4px 0; }
+        .citation-reason--positive { color: #10B981; }
+        .citation-reason--negative { color: #EF4444; }
+        .citation-missed-heading { font-size: 13px; font-weight: 600; color: #334155; margin-top: 12px; margin-bottom: 4px; }
         .aewp-cta-link { color: #2563EB; font-weight: 600; font-size: 13px; display: block; margin-top: 8px; }
         .page-type-badge { display: inline-block; background: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 6px; padding: 4px 12px; font-size: 12px; color: #0369A1; margin-top: 8px; }
         .blindspot-box { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 24px; text-align: center; margin-top: 24px; }
@@ -214,6 +235,7 @@ function aivs_build_pdf_html( $data ) {
     $html .= '<div style="margin-top:40px;" class="score-big">' . $score . '</div>
         <div class="tier-label">' . esc_html( $tier['label'] ) . '</div>
         <p class="tier-message">' . esc_html( $tier['message'] ) . '</p>
+        <p class="scope-line">This scan evaluates structural signals across 3 layers of the AI Visibility Stack.</p>
         <div class="footer-line">Generated by AI Visibility Scanner &middot; aivisibilityscanner.com</div>
     </div>';
 
@@ -244,6 +266,18 @@ function aivs_build_pdf_html( $data ) {
         $html .= '<div class="footer-line">Generated by AI Visibility Scanner &middot; aivisibilityscanner.com</div></div>';
     }
 
+    // Layer mapping for sub-scores
+    $layer_map = array(
+        'crawl_access'        => array( 'layer' => 1, 'label' => 'Access' ),
+        'feed_readiness'      => array( 'layer' => 1, 'label' => 'Access' ),
+        'schema_completeness' => array( 'layer' => 2, 'label' => 'Understanding' ),
+        'entity_density'      => array( 'layer' => 2, 'label' => 'Understanding' ),
+        'content_structure'   => array( 'layer' => 3, 'label' => 'Extractability' ),
+        'faq_coverage'        => array( 'layer' => 3, 'label' => 'Extractability' ),
+        'summary_presence'    => array( 'layer' => 3, 'label' => 'Extractability' ),
+        'content_richness'    => array( 'layer' => 3, 'label' => 'Extractability' ),
+    );
+
     // Page 2: Score Breakdown
     $html .= '<div class="page">
         <div class="brand">AI Visibility Scanner</div>
@@ -251,13 +285,72 @@ function aivs_build_pdf_html( $data ) {
     if ( is_array( $sub_scores ) ) {
         foreach ( $sub_scores as $key => $sub ) {
             if ( ! is_array( $sub ) ) continue;
+            $layer_badge = '';
+            if ( isset( $sub['layer'] ) && isset( $sub['layer_name'] ) ) {
+                $layer_badge = '<span class="sub-score-layer">Layer ' . intval( $sub['layer'] ) . ': ' . esc_html( $sub['layer_name'] ) . '</span>';
+            } elseif ( isset( $layer_map[ $key ] ) ) {
+                $layer_badge = '<span class="sub-score-layer">Layer ' . intval( $layer_map[ $key ]['layer'] ) . ': ' . esc_html( $layer_map[ $key ]['label'] ) . '</span>';
+            }
             $html .= '<div class="sub-score">
-                <span class="sub-score-label">' . esc_html( $sub['label'] ) . '</span>
+                <span class="sub-score-label">' . esc_html( $sub['label'] ) . $layer_badge . '</span>
                 <span class="sub-score-value">' . intval( $sub['score'] ) . '/100</span>
             </div>';
         }
     }
     $html .= '<div class="footer-line">Generated by AI Visibility Scanner &middot; aivisibilityscanner.com</div></div>';
+
+    // Page 2.5: AI Visibility Stack Summary
+    if ( is_array( $sub_scores ) ) {
+        // Layer 1: Access = avg(crawl_access, feed_readiness)
+        $crawl_s = isset( $sub_scores['crawl_access']['score'] ) ? intval( $sub_scores['crawl_access']['score'] ) : 0;
+        $feed_s  = isset( $sub_scores['feed_readiness']['score'] ) ? intval( $sub_scores['feed_readiness']['score'] ) : 0;
+        $layer_1_score = isset( $sub_scores['crawl_access'] ) ? round( ( $crawl_s + $feed_s ) / 2 ) : $feed_s;
+
+        // Layer 2: Understanding = avg(schema_completeness, entity_density)
+        $layer_2_score = round( (
+            ( isset( $sub_scores['schema_completeness']['score'] ) ? $sub_scores['schema_completeness']['score'] : 0 ) +
+            ( isset( $sub_scores['entity_density']['score'] ) ? $sub_scores['entity_density']['score'] : 0 )
+        ) / 2 );
+
+        // Layer 3: Extractability = avg(content_structure, faq_coverage, summary_presence, content_richness)
+        $l3_sum = ( isset( $sub_scores['content_structure']['score'] ) ? $sub_scores['content_structure']['score'] : 0 ) +
+                  ( isset( $sub_scores['faq_coverage']['score'] ) ? $sub_scores['faq_coverage']['score'] : 0 ) +
+                  ( isset( $sub_scores['summary_presence']['score'] ) ? $sub_scores['summary_presence']['score'] : 0 ) +
+                  ( isset( $sub_scores['content_richness']['score'] ) ? $sub_scores['content_richness']['score'] : 0 );
+        $l3_cnt = 3 + ( isset( $sub_scores['content_richness'] ) ? 1 : 0 );
+        $layer_3_score = round( $l3_sum / $l3_cnt );
+
+        $stack_layers = array(
+            array( 'num' => 1, 'name' => 'Access',          'score' => $layer_1_score, 'future' => false ),
+            array( 'num' => 2, 'name' => 'Understanding',   'score' => $layer_2_score, 'future' => false ),
+            array( 'num' => 3, 'name' => 'Extractability',  'score' => $layer_3_score, 'future' => false ),
+            array( 'num' => 4, 'name' => 'Trust',           'score' => null,           'future' => true ),
+            array( 'num' => 5, 'name' => 'Authority',       'score' => null,           'future' => true ),
+        );
+
+        $html .= '<div class="page">
+            <div class="brand">AI Visibility Scanner</div>
+            <h2>AI Visibility Stack Analysis</h2>
+            <p style="color:#64748B;font-size:13px;margin-bottom:24px;">The AI Visibility Stack shows how AI systems decide which sources to cite. Each layer depends on the ones below it.</p>';
+
+        foreach ( $stack_layers as $sl ) {
+            $future_class = $sl['future'] ? ' stack-layer--future' : '';
+            $score_html = '';
+            if ( $sl['future'] ) {
+                $score_html = '<span class="stack-layer__future-label">&#128274; Premium</span>';
+            } else {
+                $sl_tier = aivs_get_tier( $sl['score'] );
+                $score_html = '<span class="stack-layer__score" style="color:' . esc_attr( $sl_tier['color'] ) . '">' . intval( $sl['score'] ) . '/100</span>';
+            }
+            $html .= '<div class="stack-layer' . $future_class . '">
+                <div><span class="stack-layer__num">' . intval( $sl['num'] ) . '</span><span class="stack-layer__name">' . esc_html( $sl['name'] ) . '</span></div>
+                ' . $score_html . '
+            </div>';
+        }
+
+        $html .= '<p style="color:#94A3B8;font-size:12px;margin-top:16px;text-align:center;">Learn more at aivisibilityscanner.com/methodology</p>
+            <div class="footer-line">Generated by AI Visibility Scanner &middot; aivisibilityscanner.com</div></div>';
+    }
 
     // Page 3: Competitor Gap (if applicable)
     if ( ! empty( $competitor ) && is_array( $competitor ) ) {
@@ -296,6 +389,46 @@ function aivs_build_pdf_html( $data ) {
                 $html .= '<div class="extraction-item">' . esc_html( $headline ) . '</div>';
             }
         }
+
+        // Crawl & Richness Signals
+        $signal_items = array();
+        if ( isset( $extraction['ttfb_ms'] ) && $extraction['ttfb_ms'] > 0 ) {
+            $ttfb_label = intval( $extraction['ttfb_ms'] ) . 'ms TTFB';
+            $signal_items[] = array( 'found' => $extraction['ttfb_ms'] < 2000, 'text' => $ttfb_label );
+        }
+        if ( ! empty( $extraction['has_canonical'] ) ) {
+            $signal_items[] = array( 'found' => true, 'text' => 'Canonical tag present' );
+        }
+        if ( ! empty( $extraction['is_ssr'] ) ) {
+            $signal_items[] = array( 'found' => true, 'text' => 'Server-side rendered' );
+        }
+        if ( ! empty( $extraction['stat_count'] ) ) {
+            $signal_items[] = array( 'found' => true, 'text' => intval( $extraction['stat_count'] ) . ' statistics/data points' );
+        }
+        if ( ! empty( $extraction['quality_citations'] ) ) {
+            $signal_items[] = array( 'found' => true, 'text' => intval( $extraction['quality_citations'] ) . ' quality citation(s)' );
+        }
+        if ( ! empty( $extraction['front_loaded_count'] ) ) {
+            $signal_items[] = array( 'found' => true, 'text' => intval( $extraction['front_loaded_count'] ) . ' front-loaded answer(s)' );
+        }
+        if ( ! empty( $extraction['question_heading_count'] ) ) {
+            $signal_items[] = array( 'found' => true, 'text' => intval( $extraction['question_heading_count'] ) . ' question heading(s)' );
+        }
+        if ( ! empty( $extraction['list_count'] ) ) {
+            $signal_items[] = array( 'found' => true, 'text' => intval( $extraction['list_count'] ) . ' list(s) found' );
+        }
+        if ( ! empty( $extraction['table_count'] ) ) {
+            $signal_items[] = array( 'found' => true, 'text' => intval( $extraction['table_count'] ) . ' table(s) found' );
+        }
+        if ( ! empty( $signal_items ) ) {
+            $html .= '<h3>Crawl &amp; Richness Signals</h3>';
+            foreach ( $signal_items as $si ) {
+                $icon  = $si['found'] ? '&check;' : '&cross;';
+                $class = $si['found'] ? 'found' : 'missing';
+                $html .= '<div class="extraction-item ' . $class . '">' . $icon . ' ' . esc_html( $si['text'] ) . '</div>';
+            }
+        }
+
         if ( ! empty( $extraction['missing'] ) ) {
             $html .= '<h3>Missing Signals</h3>';
             foreach ( $extraction['missing'] as $item ) {
@@ -304,6 +437,43 @@ function aivs_build_pdf_html( $data ) {
         }
     }
     $html .= '<div class="footer-line">Generated by AI Visibility Scanner &middot; aivisibilityscanner.com</div></div>';
+
+    // Page 4.5: Citation Simulation (if data available)
+    $citation = isset( $data['citation'] ) ? $data['citation'] : array();
+    if ( ! empty( $citation ) && isset( $citation['prompt'] ) ) {
+        $html .= '<div class="page">
+            <div class="brand">AI Visibility Scanner</div>
+            <h2>Citation Simulation</h2>
+            <p style="color:#64748B;font-size:13px;margin-bottom:24px;">Based on structural signals, not AI ranking models.</p>
+            <div class="citation-card">
+                <div class="citation-badge">Simulated</div>
+                <div class="citation-prompt">&ldquo;' . esc_html( $citation['prompt'] ) . '&rdquo;</div>';
+
+        $would_cite = ! empty( $citation['would_cite'] );
+        $verdict_class = $would_cite ? 'citation-verdict--yes' : 'citation-verdict--no';
+        $verdict_text = $would_cite
+            ? 'Based on your page structure, AI systems would likely cite your content for this query.'
+            : 'Based on your page structure, AI systems would likely skip your content for this query.';
+        $html .= '<div class="citation-verdict ' . $verdict_class . '">' . esc_html( $verdict_text ) . '</div>';
+
+        if ( ! empty( $citation['reasons'] ) ) {
+            foreach ( $citation['reasons'] as $reason ) {
+                $reason_class = $would_cite ? 'citation-reason--positive' : 'citation-reason--negative';
+                $reason_icon  = $would_cite ? '&check;' : '&cross;';
+                $html .= '<div class="citation-reason ' . $reason_class . '">' . $reason_icon . ' ' . esc_html( $reason ) . '</div>';
+            }
+        }
+
+        if ( ! empty( $citation['missed_citations'] ) ) {
+            $html .= '<div class="citation-missed-heading">Missed Citation Opportunities</div>';
+            foreach ( $citation['missed_citations'] as $heading ) {
+                $html .= '<div class="citation-reason citation-reason--negative">&cross; &ldquo;' . esc_html( $heading ) . '&rdquo; has no FAQ/HowTo schema</div>';
+            }
+        }
+
+        $html .= '</div>
+            <div class="footer-line">Generated by AI Visibility Scanner &middot; aivisibilityscanner.com</div></div>';
+    }
 
     // Page 5: Top 3 Fixes
     $html .= '<div class="page">
@@ -332,7 +502,7 @@ function aivs_build_pdf_html( $data ) {
             <h2>How AI Sees Your Page</h2>
             <p style="color:#64748B;font-size:13px;margin-bottom:16px;">This is the raw text that AI crawlers extract from your page:</p>
             <div class="raw-text-box">' . esc_html( substr( $raw_text['raw_text'], 0, 1500 ) ) . '</div>
-            <p style="margin-top:16px;font-size:13px;color:#64748B;">Is this a mess? Install AnswerEngineWP to generate clean, structured feeds for AI.</p>
+            <p style="margin-top:16px;font-size:13px;color:#64748B;">Is this a mess? AnswerEngineWP generates clean, structured feeds for AI. Join the waitlist at aivisibilityscanner.com</p>
             <div class="footer-line">Generated by AI Visibility Scanner &middot; aivisibilityscanner.com</div>
         </div>';
     }
@@ -346,8 +516,8 @@ function aivs_build_pdf_html( $data ) {
         </div>
         <div class="cta-box">
             <h2>Improve your score with AnswerEngineWP</h2>
-            <p>Install the free WordPress plugin to automatically add AI-visible structure to your site.</p>
-            <p style="margin-top:24px;font-weight:600;">https://wordpress.org/plugins/answerenginewp/</p>
+            <p>The WordPress plugin that fixes your AI visibility score automatically. Join the waitlist for early access.</p>
+            <p style="margin-top:24px;font-weight:600;">aivisibilityscanner.com</p>
         </div>
         <p style="text-align:center;margin-top:32px;color:#64748B;font-size:14px;">
             Scan more sites: <strong>aivisibilityscanner.com</strong>

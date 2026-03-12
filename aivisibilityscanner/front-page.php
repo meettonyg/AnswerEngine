@@ -28,8 +28,8 @@ get_header();
             </div>
             <div class="scanner-landing__how-item">
                 <div class="scanner-landing__how-num">2</div>
-                <h3>6 AI signals analyzed</h3>
-                <p>Schema, content structure, FAQ coverage, summaries, feeds, and entity density.</p>
+                <h3>8 AI signals analyzed</h3>
+                <p>Crawl access, schema, content structure, FAQ coverage, summaries, feeds, entity density, and content richness.</p>
             </div>
             <div class="scanner-landing__how-item">
                 <div class="scanner-landing__how-num">3</div>

@@ -123,6 +123,20 @@ function aivs_register_rest_routes() {
             ),
         ),
     ) );
+
+    // AnswerEngineWP waitlist endpoint
+    register_rest_route( 'aivs/v1', '/waitlist', array(
+        'methods'             => 'POST',
+        'callback'            => 'aivs_handle_waitlist',
+        'permission_callback' => '__return_true',
+        'args'                => array(
+            'email' => array(
+                'required'          => true,
+                'type'              => 'string',
+                'sanitize_callback' => 'sanitize_email',
+            ),
+        ),
+    ) );
 }
 add_action( 'rest_api_init', 'aivs_register_rest_routes' );
 
@@ -390,8 +404,8 @@ function aivs_handle_email_capture( WP_REST_Request $request ) {
     $body .= "Download your full PDF report:\n" . $pdf_url . "\n\n";
     $body .= "View and share your score:\n" . $score_url . "\n\n";
     $body .= "---\n";
-    $body .= "Improve your score with AnswerEngineWP (free WordPress plugin):\n";
-    $body .= "https://wordpress.org/plugins/answerenginewp/\n";
+    $body .= "Improve your score with AnswerEngineWP:\n";
+    $body .= "Join the waitlist at aivisibilityscanner.com\n";
     $body .= "\nPowered by AI Visibility Scanner — aivisibilityscanner.com\n";
 
     $headers = array( 'Content-Type: text/plain; charset=UTF-8' );
@@ -443,6 +457,96 @@ function aivs_handle_email_capture( WP_REST_Request $request ) {
     return new WP_REST_Response( array(
         'success' => true,
         'message' => 'Report sent to ' . $email,
+    ), 200 );
+}
+
+/**
+ * Handle AnswerEngineWP waitlist signup.
+ *
+ * Stores email as a lightweight CPT entry and pushes to GHL
+ * with the 'aewp-waitlist' tag for segmentation.
+ */
+function aivs_handle_waitlist( WP_REST_Request $request ) {
+    $email   = $request->get_param( 'email' );
+    $context = $request->get_param( 'context' );
+
+    if ( ! is_email( $email ) ) {
+        return new WP_REST_Response( array(
+            'success' => false,
+            'message' => 'Please enter a valid email address.',
+        ), 400 );
+    }
+
+    // Rate-limit: 3 waitlist signups per IP per hour
+    $ip_hash    = md5( aivs_get_client_ip() . ( defined( 'AUTH_SALT' ) ? AUTH_SALT : '' ) );
+    $transient  = 'aivs_wl_' . $ip_hash;
+    $count      = (int) get_transient( $transient );
+    if ( $count >= 3 ) {
+        return new WP_REST_Response( array(
+            'success' => false,
+            'message' => 'Too many signups. Please try again later.',
+        ), 429 );
+    }
+    set_transient( $transient, $count + 1, HOUR_IN_SECONDS );
+
+    // Check for duplicate email
+    $existing = get_posts( array(
+        'post_type'   => 'aivs_scan',
+        'post_status' => 'publish',
+        'meta_key'    => '_aivs_waitlist_email',
+        'meta_value'  => sanitize_email( $email ),
+        'numberposts' => 1,
+        'fields'      => 'ids',
+    ) );
+
+    if ( empty( $existing ) ) {
+        // Store as a lightweight post with waitlist meta
+        $post_id = wp_insert_post( array(
+            'post_type'   => 'aivs_scan',
+            'post_status' => 'publish',
+            'post_title'  => 'Waitlist: ' . sanitize_email( $email ),
+        ) );
+
+        if ( $post_id && ! is_wp_error( $post_id ) ) {
+            update_post_meta( $post_id, '_aivs_waitlist_email', sanitize_email( $email ) );
+            update_post_meta( $post_id, '_aivs_waitlist_date', current_time( 'mysql' ) );
+            if ( is_array( $context ) ) {
+                update_post_meta( $post_id, '_aivs_waitlist_context', $context );
+            }
+        }
+    }
+
+    // Push to GoHighLevel
+    $ghl_api_key = defined( 'AIVS_GHL_API_KEY' ) ? AIVS_GHL_API_KEY : '';
+    if ( ! empty( $ghl_api_key ) ) {
+        $source_page = ( is_array( $context ) && ! empty( $context['source_page'] ) )
+            ? sanitize_text_field( $context['source_page'] )
+            : '';
+
+        wp_remote_post( 'https://rest.gohighlevel.com/v1/contacts/', array(
+            'timeout'  => 5,
+            'blocking' => false,
+            'headers'  => array(
+                'Content-Type'  => 'application/json',
+                'Authorization' => 'Bearer ' . $ghl_api_key,
+            ),
+            'body'     => wp_json_encode( array(
+                'email'       => $email,
+                'source'      => 'AI Visibility Scanner',
+                'tags'        => array( 'aewp-waitlist' ),
+                'customField' => array(
+                    'aivs_waitlist_source' => $source_page,
+                    'aivs_waitlist_date'   => current_time( 'c' ),
+                ),
+            ) ),
+        ) );
+    }
+
+    do_action( 'aivs_waitlist_signup', $email, $context );
+
+    return new WP_REST_Response( array(
+        'success' => true,
+        'message' => 'You\'re on the waitlist!',
     ), 200 );
 }
 
@@ -580,8 +684,11 @@ function aivs_save_scan_result( $url, $result, $competitor_data = null ) {
     if ( isset( $result['raw_text'] ) ) {
         update_post_meta( $post_id, '_aivs_raw_text', $result['raw_text'] );
     }
-    if ( isset( $result['citation_simulation']['missed_citations'] ) ) {
-        update_post_meta( $post_id, '_aivs_missed_citations', $result['citation_simulation']['missed_citations'] );
+    if ( isset( $result['citation_simulation'] ) ) {
+        update_post_meta( $post_id, '_aivs_citation_simulation', $result['citation_simulation'] );
+        if ( isset( $result['citation_simulation']['missed_citations'] ) ) {
+            update_post_meta( $post_id, '_aivs_missed_citations', $result['citation_simulation']['missed_citations'] );
+        }
     }
     if ( isset( $result['page_type'] ) ) {
         update_post_meta( $post_id, '_aivs_page_type', $result['page_type'] );

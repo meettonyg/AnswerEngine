@@ -44,12 +44,14 @@
   // Prefer API-provided sub.layer / sub.layer_name when available.
   // ---------------------------------------------------------------------------
   var LAYER_MAP_FALLBACK = {
+    'crawl_access':        { layer: 1, label: 'Access' },
+    'feed_readiness':      { layer: 1, label: 'Access' },
     'schema_completeness': { layer: 2, label: 'Understanding' },
+    'entity_density':      { layer: 2, label: 'Understanding' },
     'content_structure':   { layer: 3, label: 'Extractability' },
     'faq_coverage':        { layer: 3, label: 'Extractability' },
     'summary_presence':    { layer: 3, label: 'Extractability' },
-    'feed_readiness':      { layer: 1, label: 'Access' },
-    'entity_density':      { layer: 2, label: 'Understanding' }
+    'content_richness':    { layer: 3, label: 'Extractability' }
   };
 
   function getLayerInfo(key, sub) {
@@ -472,7 +474,7 @@
 
   function renderSubScores(subScores) {
     var html = '';
-    var keys = ['schema_completeness', 'content_structure', 'faq_coverage', 'summary_presence', 'feed_readiness', 'entity_density'];
+    var keys = ['crawl_access', 'feed_readiness', 'schema_completeness', 'entity_density', 'content_structure', 'faq_coverage', 'summary_presence', 'content_richness'];
     keys.forEach(function (key) {
       var sub = subScores[key];
       if (!sub) return;
@@ -502,19 +504,23 @@
     var stackEl = document.getElementById('stackSummary');
     if (!stackEl) return;
 
-    // Layer 1: Access = feed_readiness
-    var layer1 = subScores.feed_readiness ? subScores.feed_readiness.score : 0;
+    // Layer 1: Access = avg(crawl_access, feed_readiness)
+    var crawlScore = subScores.crawl_access ? subScores.crawl_access.score : 0;
+    var feedScore = subScores.feed_readiness ? subScores.feed_readiness.score : 0;
+    var layer1 = subScores.crawl_access ? Math.round((crawlScore + feedScore) / 2) : feedScore;
 
     // Layer 2: Understanding = avg(schema_completeness, entity_density)
     var schemaScore = subScores.schema_completeness ? subScores.schema_completeness.score : 0;
     var entityScore = subScores.entity_density ? subScores.entity_density.score : 0;
     var layer2 = Math.round((schemaScore + entityScore) / 2);
 
-    // Layer 3: Extractability = avg(content_structure, faq_coverage, summary_presence)
+    // Layer 3: Extractability = avg(content_structure, faq_coverage, summary_presence, content_richness)
     var structScore = subScores.content_structure ? subScores.content_structure.score : 0;
     var faqScore = subScores.faq_coverage ? subScores.faq_coverage.score : 0;
     var summaryScore = subScores.summary_presence ? subScores.summary_presence.score : 0;
-    var layer3 = Math.round((structScore + faqScore + summaryScore) / 3);
+    var richnessScore = subScores.content_richness ? subScores.content_richness.score : 0;
+    var l3Count = 3 + (subScores.content_richness ? 1 : 0);
+    var layer3 = Math.round((structScore + faqScore + summaryScore + richnessScore) / l3Count);
 
     var layers = [
       { id: 'stackScore1', score: layer1 },
@@ -546,7 +552,9 @@
     var title = (fix.title || '').toLowerCase();
     if (title.indexOf('feed') !== -1 || title.indexOf('llms.txt') !== -1 ||
         title.indexOf('sitemap') !== -1 || title.indexOf('robots') !== -1 ||
-        title.indexOf('manifest') !== -1) {
+        title.indexOf('manifest') !== -1 || title.indexOf('crawl') !== -1 ||
+        title.indexOf('canonical') !== -1 || title.indexOf('ttfb') !== -1 ||
+        title.indexOf('server response') !== -1) {
       return { num: 1, label: 'Access' };
     }
     if (title.indexOf('schema') !== -1 || title.indexOf('entity') !== -1 ||
@@ -566,11 +574,7 @@
     fixes.forEach(function (fix) {
       var ctaHtml = '';
       if (fix.aewp_cta) {
-        var ctaUrl = 'https://wordpress.org/plugins/answerenginewp/';
-        if (fix.aewp_cta_url && isSafeUrl(fix.aewp_cta_url)) {
-          ctaUrl = fix.aewp_cta_url;
-        }
-        ctaHtml = '<a href="' + escapeHtml(ctaUrl) + '" class="fix-card__aewp-cta" target="_blank" rel="noopener">' +
+        ctaHtml = '<a href="#" class="fix-card__aewp-cta aewp-waitlist-trigger">' +
           escapeHtml(fix.aewp_cta) + ' &rarr;</a>';
       }
       var fixLayer = inferFixLayer(fix);
@@ -632,7 +636,7 @@
     els.compYourUrl.textContent = data.url || 'Your Site';
     els.compTheirUrl.textContent = competitor.url || 'Competitor';
 
-    var subKeys = ['schema_completeness', 'content_structure', 'faq_coverage', 'summary_presence', 'feed_readiness', 'entity_density'];
+    var subKeys = ['crawl_access', 'feed_readiness', 'schema_completeness', 'entity_density', 'content_structure', 'faq_coverage', 'summary_presence', 'content_richness'];
 
     // Render bar chart comparison above the table.
     var barsContainer = document.getElementById('comparisonBars');
@@ -702,26 +706,46 @@
       return;
     }
 
+    var checkSvg = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#10B981" stroke-width="1.5"/><path d="M5 7l1.5 1.5L9 5.5" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     var foundHtml = '';
     if (extraction.schema_types && extraction.schema_types.length) {
+      foundHtml += '<div class="extraction__group-header">Schema Types Found</div>';
       extraction.schema_types.forEach(function (t) {
-        foundHtml += '<div class="extraction__item extraction__item--found">' +
-          '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#10B981" stroke-width="1.5"/><path d="M5 7l1.5 1.5L9 5.5" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
-          escapeHtml(t) + ' schema</div>';
+        foundHtml += '<div class="extraction__item extraction__item--found">' + checkSvg + escapeHtml(t) + '</div>';
       });
     }
     if (extraction.entities && extraction.entities.length) {
+      foundHtml += '<div class="extraction__group-header">Entities Detected</div>';
       extraction.entities.forEach(function (e) {
-        foundHtml += '<div class="extraction__item extraction__item--found">' +
-          '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#10B981" stroke-width="1.5"/><path d="M5 7l1.5 1.5L9 5.5" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
-          'Entity: ' + escapeHtml(e) + '</div>';
+        foundHtml += '<div class="extraction__item extraction__item--found">' + checkSvg + escapeHtml(e) + '</div>';
       });
     }
     if (extraction.headlines && extraction.headlines.length) {
+      foundHtml += '<div class="extraction__group-header">Headings Found</div>';
       extraction.headlines.forEach(function (h) {
-        foundHtml += '<div class="extraction__item extraction__item--found">' +
-          '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#10B981" stroke-width="1.5"/><path d="M5 7l1.5 1.5L9 5.5" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
-          escapeHtml(h) + '</div>';
+        foundHtml += '<div class="extraction__item extraction__item--found">' + checkSvg + escapeHtml(h) + '</div>';
+      });
+    }
+    // Crawl & Richness Signals
+    var signalItems = [];
+    if (extraction.ttfb_ms && extraction.ttfb_ms > 0) {
+      signalItems.push({ found: extraction.ttfb_ms < 2000, text: Math.round(extraction.ttfb_ms) + 'ms TTFB' });
+    }
+    if (extraction.has_canonical) signalItems.push({ found: true, text: 'Canonical tag present' });
+    if (extraction.is_ssr) signalItems.push({ found: true, text: 'Server-side rendered' });
+    if (extraction.stat_count) signalItems.push({ found: true, text: extraction.stat_count + ' statistics/data points' });
+    if (extraction.quality_citations) signalItems.push({ found: true, text: extraction.quality_citations + ' quality citation(s)' });
+    if (extraction.front_loaded_count) signalItems.push({ found: true, text: extraction.front_loaded_count + ' front-loaded answer(s)' });
+    if (extraction.question_heading_count) signalItems.push({ found: true, text: extraction.question_heading_count + ' question heading(s)' });
+    if (extraction.list_count) signalItems.push({ found: true, text: extraction.list_count + ' list(s) found' });
+    if (extraction.table_count) signalItems.push({ found: true, text: extraction.table_count + ' table(s) found' });
+    if (signalItems.length) {
+      foundHtml += '<div class="extraction__group-header">Crawl &amp; Richness Signals</div>';
+      var xSvg = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#EF4444" stroke-width="1.5"/><path d="M5 5l4 4M9 5l-4 4" stroke="#EF4444" stroke-width="1.5" stroke-linecap="round"/></svg>';
+      signalItems.forEach(function (si) {
+        var cls = si.found ? 'extraction__item--found' : 'extraction__item--missing';
+        var icon = si.found ? checkSvg : xSvg;
+        foundHtml += '<div class="extraction__item ' + cls + '">' + icon + escapeHtml(si.text) + '</div>';
       });
     }
     els.extractionFound.innerHTML = foundHtml || '<p class="text-small" style="color:var(--gray-500)">No extractable signals found.</p>';

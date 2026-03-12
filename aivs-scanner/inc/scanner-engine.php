@@ -2,7 +2,7 @@
 /**
  * Scanner Scoring Engine
  *
- * Fetches a URL, parses HTML, and calculates 6 sub-scores
+ * Fetches a URL, parses HTML, and calculates 8 sub-scores
  * for the AI Visibility Score (0-100).
  *
  * @package AIVisibilityScanner
@@ -64,7 +64,8 @@ function aivs_scan_url( $url, $page_type = 'auto' ) {
         return $url_check;
     }
 
-    // Fetch the page
+    // Fetch the page (with TTFB timing)
+    $fetch_start = microtime( true );
     $response = wp_remote_get( $url, array(
         'timeout'    => 15,
         'user-agent' => 'Mozilla/5.0 (compatible; AIVisibilityScanner/1.0; +https://aivisibilityscanner.com)',
@@ -74,6 +75,7 @@ function aivs_scan_url( $url, $page_type = 'auto' ) {
             'Accept-Language' => 'en-US,en;q=0.5',
         ),
     ) );
+    $ttfb_ms = round( ( microtime( true ) - $fetch_start ) * 1000 );
 
     if ( is_wp_error( $response ) ) {
         return new WP_Error( 'fetch_failed', 'Could not fetch the URL. The site may be unreachable or blocking requests.' );
@@ -111,24 +113,41 @@ function aivs_scan_url( $url, $page_type = 'auto' ) {
         }
     }
 
-    // New analysis functions
+    // Diagnostic analysis functions
     $robots_data   = aivs_analyze_robots( $robots_body );
     $spa_data      = aivs_detect_spa( $doc, $xpath, $html );
     $raw_text_data = aivs_extract_raw_text( $doc, $xpath );
 
-    // Calculate sub-scores (pass page_type to schema analysis)
+    // Calculate sub-scores (8 sub-scores across 3 layers)
     $schema_data       = aivs_analyze_schema( $doc, $xpath, $html, $page_type );
     $structure_data    = aivs_analyze_structure( $doc, $xpath );
     $faq_data          = aivs_analyze_faq( $doc, $xpath, $html );
     $summary_data      = aivs_analyze_summaries( $doc, $xpath );
     $feed_data         = aivs_analyze_feeds( $domain_root, $xpath );
     $entity_data       = aivs_analyze_entities( $doc, $xpath );
+    $crawl_data        = aivs_analyze_crawl_access( $robots_data, $spa_data, $ttfb_ms, $xpath );
+    $richness_data     = aivs_analyze_content_richness( $doc, $xpath, $html );
 
     $sub_scores = array(
+        'crawl_access' => array(
+            'score'       => $crawl_data['score'],
+            'label'       => 'Crawl Access',
+            'description' => 'Can AI crawlers reach and render your content efficiently?',
+        ),
+        'feed_readiness' => array(
+            'score'       => $feed_data['score'],
+            'label'       => 'Feed & Manifest Readiness',
+            'description' => 'Do /llms.txt and /llms-full.json exist and validate?',
+        ),
         'schema_completeness' => array(
             'score'       => $schema_data['score'],
             'label'       => 'Schema Completeness',
             'description' => 'How many schema.org types are present and properly structured?',
+        ),
+        'entity_density' => array(
+            'score'       => $entity_data['score'],
+            'label'       => 'Entity Density',
+            'description' => 'How many named entities are machine-identifiable?',
         ),
         'content_structure' => array(
             'score'       => $structure_data['score'],
@@ -145,33 +164,30 @@ function aivs_scan_url( $url, $page_type = 'auto' ) {
             'label'       => 'Summary Presence',
             'description' => 'Can AI extract concise definitions and summaries from your pages?',
         ),
-        'feed_readiness' => array(
-            'score'       => $feed_data['score'],
-            'label'       => 'Feed & Manifest Readiness',
-            'description' => 'Do /llms.txt and /llms-full.json exist and validate?',
-        ),
-        'entity_density' => array(
-            'score'       => $entity_data['score'],
-            'label'       => 'Entity Density',
-            'description' => 'How many named entities are machine-identifiable?',
+        'content_richness' => array(
+            'score'       => $richness_data['score'],
+            'label'       => 'Content Richness',
+            'description' => 'Does your content include statistics, quality citations, and front-loaded answers?',
         ),
     );
 
-    // Weighted overall score
+    // Weighted overall score (8 sub-scores)
     $overall = round(
-        $schema_data['score']    * 0.20 +
-        $structure_data['score'] * 0.15 +
-        $faq_data['score']       * 0.20 +
-        $summary_data['score']   * 0.20 +
-        $feed_data['score']      * 0.10 +
-        $entity_data['score']    * 0.15
+        $crawl_data['score']     * 0.15 +
+        $feed_data['score']      * 0.08 +
+        $schema_data['score']    * 0.15 +
+        $entity_data['score']    * 0.10 +
+        $structure_data['score'] * 0.12 +
+        $faq_data['score']       * 0.12 +
+        $summary_data['score']   * 0.12 +
+        $richness_data['score']  * 0.16
     );
     $overall = max( 0, min( 100, $overall ) );
 
     $tier_data = aivs_get_tier( $overall );
 
     // Generate fixes
-    $fixes = aivs_generate_fixes( $sub_scores, $schema_data, $structure_data, $faq_data, $summary_data, $feed_data, $entity_data );
+    $fixes = aivs_generate_fixes( $sub_scores, $schema_data, $structure_data, $faq_data, $summary_data, $feed_data, $entity_data, $crawl_data, $richness_data );
 
     // Calculate projected score
     $projected = $overall;
@@ -182,16 +198,23 @@ function aivs_scan_url( $url, $page_type = 'auto' ) {
 
     // Build extraction data
     $extraction = array(
-        'entities'              => $entity_data['entities'],
-        'headlines'             => $structure_data['headlines'],
-        'structured_answers'    => $faq_data['count'],
-        'extractable_summaries' => $summary_data['count'],
-        'schema_types'          => $schema_data['types'],
-        'list_count'            => $structure_data['list_count'],
-        'table_count'           => $structure_data['table_count'],
-        'eeat_fields_found'     => $entity_data['eeat_fields_found'],
-        'eeat_fields_missing'   => $entity_data['eeat_fields_missing'],
-        'missing'               => aivs_get_missing_items( $schema_data, $structure_data, $faq_data, $summary_data, $feed_data, $entity_data, $robots_data ),
+        'entities'               => $entity_data['entities'],
+        'headlines'              => $structure_data['headlines'],
+        'structured_answers'     => $faq_data['count'],
+        'extractable_summaries'  => $summary_data['count'],
+        'schema_types'           => $schema_data['types'],
+        'list_count'             => $structure_data['list_count'],
+        'table_count'            => $structure_data['table_count'],
+        'eeat_fields_found'      => $entity_data['eeat_fields_found'],
+        'eeat_fields_missing'    => $entity_data['eeat_fields_missing'],
+        'ttfb_ms'                => $ttfb_ms,
+        'has_canonical'          => $crawl_data['has_canonical'],
+        'is_ssr'                 => $crawl_data['is_ssr'],
+        'stat_count'             => $richness_data['stat_count'],
+        'quality_citations'      => $richness_data['quality_citations'],
+        'front_loaded_count'     => $richness_data['front_loaded_count'],
+        'question_heading_count' => $structure_data['question_heading_count'],
+        'missing'                => aivs_get_missing_items( $schema_data, $structure_data, $faq_data, $summary_data, $feed_data, $entity_data, $robots_data, $crawl_data, $richness_data ),
     );
 
     // Citation simulation (with per-heading warnings)
@@ -259,6 +282,68 @@ function aivs_analyze_schema( $doc, $xpath, $html, $page_type = 'auto' ) {
 
     $types = array_unique( $types );
 
+    // Person Schema check (Factor 2.3)
+    $has_person_schema = false;
+    foreach ( $scripts as $script ) {
+        $json = json_decode( $script->textContent, true );
+        if ( ! $json ) continue;
+        $items = array();
+        if ( isset( $json['@type'] ) ) $items[] = $json;
+        if ( isset( $json['@graph'] ) && is_array( $json['@graph'] ) ) $items = array_merge( $items, $json['@graph'] );
+        foreach ( $items as $item ) {
+            if ( isset( $item['@type'] ) && $item['@type'] === 'Person' ) {
+                $has_person_schema = true;
+                $person_fields = 0;
+                foreach ( array( 'name', 'jobTitle', 'knowsAbout', 'sameAs', 'alumniOf' ) as $f ) {
+                    if ( ! empty( $item[ $f ] ) ) $person_fields++;
+                }
+                if ( $person_fields >= 3 ) {
+                    $score += 22;
+                } elseif ( $person_fields >= 1 ) {
+                    $score += 10;
+                }
+                break;
+            }
+        }
+    }
+
+    // sameAs property check (Factor 2.14)
+    $has_same_as = false;
+    foreach ( $scripts as $script ) {
+        $json = json_decode( $script->textContent, true );
+        if ( ! $json ) continue;
+        $items = array();
+        if ( isset( $json['@type'] ) ) $items[] = $json;
+        if ( isset( $json['@graph'] ) && is_array( $json['@graph'] ) ) $items = array_merge( $items, $json['@graph'] );
+        foreach ( $items as $item ) {
+            if ( ! empty( $item['sameAs'] ) ) {
+                $has_same_as = true;
+                $score += 10;
+                break 2;
+            }
+        }
+    }
+
+    // Schema Graph check (Factor 2.15) — @graph array with 3+ interconnected types
+    $has_schema_graph = false;
+    foreach ( $scripts as $script ) {
+        $json = json_decode( $script->textContent, true );
+        if ( ! $json || ! isset( $json['@graph'] ) || ! is_array( $json['@graph'] ) ) continue;
+        $graph_types = array();
+        foreach ( $json['@graph'] as $item ) {
+            if ( isset( $item['@type'] ) ) $graph_types[] = $item['@type'];
+        }
+        $graph_types = array_unique( $graph_types );
+        if ( count( $graph_types ) >= 3 ) {
+            $has_schema_graph = true;
+            $score += 15;
+        } elseif ( count( $graph_types ) >= 2 ) {
+            $has_schema_graph = true;
+            $score += 5;
+        }
+        break;
+    }
+
     // Page-type-aware schema scoring
     $page_type_matches    = array();
     $page_type_mismatches = array();
@@ -296,6 +381,9 @@ function aivs_analyze_schema( $doc, $xpath, $html, $page_type = 'auto' ) {
         'score'                => $score,
         'types'                => array_values( $types ),
         'has_speakable'        => stripos( $html, 'speakable' ) !== false,
+        'has_person_schema'    => $has_person_schema,
+        'has_same_as'          => $has_same_as,
+        'has_schema_graph'     => $has_schema_graph,
         'page_type_matches'    => $page_type_matches,
         'page_type_mismatches' => $page_type_mismatches,
     );
@@ -364,24 +452,51 @@ function aivs_analyze_structure( $doc, $xpath ) {
         $score += 15;
     }
 
-    // Check for structured data formatting (lists and tables)
+    // Check for structured data formatting (lists and tables) — graduated scoring
     $lists  = $xpath->query( '//ul | //ol' );
     $tables = $xpath->query( '//table' );
     $list_count  = $lists->length;
     $table_count = $tables->length;
 
-    if ( $list_count > 0 || $table_count > 0 ) {
+    // Lists: graduated 8/12/15 pts by count
+    if ( $list_count >= 3 ) {
+        $score += 15;
+    } elseif ( $list_count >= 2 ) {
+        $score += 12;
+    } elseif ( $list_count >= 1 ) {
+        $score += 8;
+    }
+
+    // Tables: graduated 7/10 pts by count
+    if ( $table_count >= 2 ) {
         $score += 10;
+    } elseif ( $table_count >= 1 ) {
+        $score += 7;
+    }
+
+    // Question headings bonus (Factor 3.3)
+    $question_heading_count = 0;
+    foreach ( $headings as $heading ) {
+        $h_text = trim( $heading->textContent );
+        if ( preg_match( '/\?$/', $h_text ) || preg_match( '/^(how|what|why|when|where|who|which|can|do|does|is|are|should)\b/i', $h_text ) ) {
+            $question_heading_count++;
+        }
+    }
+    if ( $question_heading_count >= 3 ) {
+        $score += 10;
+    } elseif ( $question_heading_count >= 1 ) {
+        $score += 5;
     }
 
     $score = min( 100, $score );
 
     return array(
-        'score'       => $score,
-        'headlines'   => array_slice( $headlines, 0, 10 ),
-        'issues'      => $issues,
-        'list_count'  => $list_count,
-        'table_count' => $table_count,
+        'score'                  => $score,
+        'headlines'              => array_slice( $headlines, 0, 10 ),
+        'issues'                 => $issues,
+        'list_count'             => $list_count,
+        'table_count'            => $table_count,
+        'question_heading_count' => $question_heading_count,
     );
 }
 
@@ -807,11 +922,33 @@ function aivs_analyze_entities( $doc, $xpath ) {
 /**
  * Generate top 3 fix recommendations
  */
-function aivs_generate_fixes( $sub_scores, $schema_data, $structure_data, $faq_data, $summary_data, $feed_data, $entity_data ) {
+function aivs_generate_fixes( $sub_scores, $schema_data, $structure_data, $faq_data, $summary_data, $feed_data, $entity_data, $crawl_data = array(), $richness_data = array() ) {
     $fixes = array();
 
     // Collect potential fixes sorted by impact
     $potential = array();
+
+    if ( isset( $sub_scores['crawl_access'] ) && $sub_scores['crawl_access']['score'] < 50 ) {
+        $potential[] = array(
+            'points'       => 8,
+            'title'        => 'Improve crawl access for AI bots',
+            'description'  => 'AI crawlers may be blocked or slowed down. Check robots.txt permissions, add a canonical tag, and ensure server-side rendering.',
+            'aewp_feature' => 'crawl_optimizer',
+            'aewp_cta'     => 'Fix with AEWP\'s Crawl Optimizer',
+            'priority'     => 100 - $sub_scores['crawl_access']['score'],
+        );
+    }
+
+    if ( isset( $sub_scores['content_richness'] ) && $sub_scores['content_richness']['score'] < 50 ) {
+        $potential[] = array(
+            'points'       => 10,
+            'title'        => 'Add statistics and quality citations',
+            'description'  => 'Your content lacks data points and well-formatted citations. Adding statistics, percentages, and descriptive outbound links increases AI citation likelihood.',
+            'aewp_feature' => 'content_enricher',
+            'aewp_cta'     => 'Fix with AEWP\'s Content Enricher',
+            'priority'     => 100 - $sub_scores['content_richness']['score'],
+        );
+    }
 
     if ( $sub_scores['faq_coverage']['score'] < 50 ) {
         $potential[] = array(
@@ -913,7 +1050,7 @@ function aivs_generate_fixes( $sub_scores, $schema_data, $structure_data, $faq_d
 /**
  * Get list of missing items for extraction preview
  */
-function aivs_get_missing_items( $schema_data, $structure_data, $faq_data, $summary_data, $feed_data, $entity_data = array(), $robots_data = array() ) {
+function aivs_get_missing_items( $schema_data, $structure_data, $faq_data, $summary_data, $feed_data, $entity_data = array(), $robots_data = array(), $crawl_data = array(), $richness_data = array() ) {
     $missing = array();
 
     // Critical: robots.txt blocking AI crawlers
@@ -921,8 +1058,25 @@ function aivs_get_missing_items( $schema_data, $structure_data, $faq_data, $summ
         $missing[] = 'robots.txt blocks AI crawlers';
     }
 
+    // Crawl access issues
+    if ( ! empty( $crawl_data ) ) {
+        if ( empty( $crawl_data['has_canonical'] ) ) {
+            $missing[] = 'No canonical tag';
+        }
+        if ( empty( $crawl_data['is_ssr'] ) ) {
+            $missing[] = 'JavaScript-rendered SPA detected';
+        }
+        if ( isset( $crawl_data['ttfb_ms'] ) && $crawl_data['ttfb_ms'] > 2000 ) {
+            $missing[] = 'Slow server response (' . $crawl_data['ttfb_ms'] . 'ms)';
+        }
+    }
+
     if ( ! $schema_data['has_speakable'] ) {
         $missing[] = 'No Speakable markup';
+    }
+
+    if ( empty( $schema_data['has_person_schema'] ) ) {
+        $missing[] = 'No Person schema';
     }
 
     if ( $feed_data['score'] < 40 ) {
@@ -941,6 +1095,19 @@ function aivs_get_missing_items( $schema_data, $structure_data, $faq_data, $summ
         $missing[] = 'No schema.org types detected';
     }
 
+    // Content richness issues
+    if ( ! empty( $richness_data ) ) {
+        if ( empty( $richness_data['has_statistics'] ) ) {
+            $missing[] = 'No statistics or data points';
+        }
+        if ( empty( $richness_data['has_citations'] ) ) {
+            $missing[] = 'No quality outbound citations';
+        }
+        if ( empty( $richness_data['has_front_loaded'] ) ) {
+            $missing[] = 'No front-loaded answers after headings';
+        }
+    }
+
     // E-E-A-T depth
     if ( ! empty( $entity_data['eeat_fields_missing'] ) ) {
         $missing[] = 'Author schema lacks verifiable credentials';
@@ -952,7 +1119,7 @@ function aivs_get_missing_items( $schema_data, $structure_data, $faq_data, $summ
         }
     }
 
-    return array_slice( $missing, 0, 8 );
+    return array_slice( $missing, 0, 10 );
 }
 
 /**
@@ -1229,6 +1396,233 @@ function aivs_extract_raw_text( $doc, $xpath ) {
         'raw_text'   => $text,
         'word_count' => str_word_count( $text ),
         'char_count' => strlen( $text ),
+    );
+}
+
+/**
+ * Analyze crawl access signals (L1: Access layer)
+ *
+ * Scores robots.txt AI bot permissions, canonical tag, TTFB,
+ * SSR vs SPA rendering, and WAF placeholder.
+ *
+ * @param array $robots_data  Output from aivs_analyze_robots().
+ * @param array $spa_data     Output from aivs_detect_spa().
+ * @param int   $ttfb_ms      Time-to-first-byte in milliseconds.
+ * @param DOMXPath $xpath     XPath instance for the page.
+ * @return array Score and details.
+ */
+function aivs_analyze_crawl_access( $robots_data, $spa_data, $ttfb_ms, $xpath ) {
+    $score = 0;
+
+    // 1. robots.txt AI bot permissions (0-30 pts)
+    if ( ! empty( $robots_data['found'] ) ) {
+        $blocked_count = count( $robots_data['ai_bots_blocked'] );
+        $total_bots    = count( $robots_data['ai_bots_blocked'] ) + count( $robots_data['ai_bots_allowed'] ) + count( $robots_data['ai_bots_no_mention'] );
+
+        if ( $blocked_count === 0 ) {
+            $score += 30;
+        } elseif ( $blocked_count <= 2 ) {
+            $score += 20;
+        } elseif ( $blocked_count <= 4 ) {
+            $score += 10;
+        }
+        // 5+ blocked = 0 pts
+    } else {
+        // No robots.txt found — not blocking but also not explicitly allowing
+        $score += 15;
+    }
+
+    // 2. Canonical tag (0-20 pts)
+    $has_canonical = false;
+    $canonical_nodes = $xpath->query( '//link[@rel="canonical"]/@href' );
+    if ( $canonical_nodes->length > 0 && strlen( trim( $canonical_nodes->item( 0 )->value ) ) > 5 ) {
+        $has_canonical = true;
+        $score += 20;
+    }
+
+    // 3. TTFB (5-20 pts)
+    $ttfb_score = 5;
+    if ( $ttfb_ms <= 500 ) {
+        $ttfb_score = 20;
+    } elseif ( $ttfb_ms <= 1000 ) {
+        $ttfb_score = 15;
+    } elseif ( $ttfb_ms <= 2000 ) {
+        $ttfb_score = 10;
+    }
+    $score += $ttfb_score;
+
+    // 4. SSR / no SPA (0-20 pts)
+    $is_ssr = true;
+    if ( ! empty( $spa_data['is_spa'] ) ) {
+        $is_ssr = false;
+        // SPA with low word count = bad for AI crawlers
+        $score += 0;
+    } elseif ( $spa_data['word_count'] >= 100 ) {
+        $score += 20;
+    } elseif ( $spa_data['word_count'] >= 50 ) {
+        $score += 10;
+    }
+
+    // 5. WAF placeholder (10 free pts — future: GPTBot UA test)
+    $score += 10;
+
+    $score = min( 100, $score );
+
+    return array(
+        'score'         => $score,
+        'has_canonical'  => $has_canonical,
+        'ttfb_ms'        => $ttfb_ms,
+        'is_ssr'         => $is_ssr,
+        'bots_blocked'   => count( $robots_data['ai_bots_blocked'] ),
+        'bots_allowed'   => count( $robots_data['ai_bots_allowed'] ),
+    );
+}
+
+/**
+ * Analyze content richness (L3: Extractability layer)
+ *
+ * Scores statistics presence, citation formatting quality,
+ * front-loaded answers, and question headings.
+ *
+ * @param DOMDocument $doc   Parsed document.
+ * @param DOMXPath    $xpath XPath instance.
+ * @param string      $html  Raw HTML.
+ * @return array Score and details.
+ */
+function aivs_analyze_content_richness( $doc, $xpath, $html ) {
+    $score = 0;
+
+    // 1. Statistics presence (0-30 pts)
+    // Look for percentages, dollar amounts, large numbers in body text
+    $body_nodes = $xpath->query( '//article | //main | //body' );
+    $body_text  = '';
+    if ( $body_nodes->length > 0 ) {
+        $body_text = $body_nodes->item( 0 )->textContent;
+    }
+
+    $stat_count = 0;
+    // Percentages: 45%, 3.5%
+    $stat_count += preg_match_all( '/\b\d+(?:\.\d+)?%/', $body_text );
+    // Dollar/currency amounts: $1,200, $45M, €500
+    $stat_count += preg_match_all( '/[$€£¥]\s?\d[\d,]*(?:\.\d+)?(?:\s?[MBKmbk](?:illion)?)?/', $body_text );
+    // Large numbers with commas: 1,234 or 12,345,678
+    $stat_count += preg_match_all( '/\b\d{1,3}(?:,\d{3})+\b/', $body_text );
+    // Multipliers: 2x, 10x, 100x
+    $stat_count += preg_match_all( '/\b\d+(?:\.\d+)?x\b/i', $body_text );
+
+    $has_statistics = $stat_count > 0;
+    if ( $stat_count >= 5 ) {
+        $score += 30;
+    } elseif ( $stat_count >= 3 ) {
+        $score += 20;
+    } elseif ( $stat_count >= 1 ) {
+        $score += 10;
+    }
+
+    // 2. Citation formatting quality (0-30 pts)
+    // Outbound links with descriptive anchor text (not just "click here" or bare URLs)
+    $links = $xpath->query( '//article//a[@href] | //main//a[@href] | //body//a[@href]' );
+    $outbound_quality = 0;
+    $outbound_total   = 0;
+    $generic_anchors  = array( 'click here', 'here', 'link', 'read more', 'learn more', 'this', 'source' );
+
+    foreach ( $links as $link ) {
+        $href = $link->getAttribute( 'href' );
+        // Skip internal anchors, javascript, and mailto
+        if ( strpos( $href, '#' ) === 0 || strpos( $href, 'javascript:' ) === 0 || strpos( $href, 'mailto:' ) === 0 ) {
+            continue;
+        }
+        // Only count external-looking links (absolute URLs)
+        if ( strpos( $href, 'http' ) !== 0 ) {
+            continue;
+        }
+        $outbound_total++;
+        $anchor_text = strtolower( trim( $link->textContent ) );
+        // Quality: descriptive anchor text (3+ words, not generic)
+        $word_count = str_word_count( $anchor_text );
+        if ( $word_count >= 3 && ! in_array( $anchor_text, $generic_anchors, true ) ) {
+            $outbound_quality++;
+        } elseif ( $word_count >= 2 && ! in_array( $anchor_text, $generic_anchors, true ) ) {
+            $outbound_quality += 0.5;
+        }
+    }
+
+    $has_citations = $outbound_total > 0;
+    if ( $outbound_quality >= 5 ) {
+        $score += 30;
+    } elseif ( $outbound_quality >= 3 ) {
+        $score += 20;
+    } elseif ( $outbound_quality >= 1 ) {
+        $score += 10;
+    }
+
+    // 3. Front-loaded answers (0-25 pts)
+    // First <p> after each H2 should contain a direct answer (short, declarative)
+    $front_loaded_count = 0;
+    $h2s = $xpath->query( '//h2' );
+
+    foreach ( $h2s as $h2 ) {
+        // Walk siblings to find first <p>
+        $sibling = $h2->nextSibling;
+        $found_p = false;
+        $attempts = 0;
+        while ( $sibling && $attempts < 5 ) {
+            if ( $sibling->nodeType === XML_ELEMENT_NODE && strtolower( $sibling->nodeName ) === 'p' ) {
+                $p_text = trim( $sibling->textContent );
+                $p_words = str_word_count( $p_text );
+                // Good front-loaded answer: 15-60 words, starts with a declarative statement
+                if ( $p_words >= 15 && $p_words <= 60 ) {
+                    $front_loaded_count++;
+                }
+                $found_p = true;
+                break;
+            }
+            $sibling = $sibling->nextSibling;
+            $attempts++;
+        }
+    }
+
+    $has_front_loaded = $front_loaded_count > 0;
+    if ( $front_loaded_count >= 3 ) {
+        $score += 25;
+    } elseif ( $front_loaded_count >= 2 ) {
+        $score += 18;
+    } elseif ( $front_loaded_count >= 1 ) {
+        $score += 10;
+    }
+
+    // 4. Question headings bonus (0-15 pts)
+    $question_heading_count = 0;
+    $headings = $xpath->query( '//h2|//h3' );
+    foreach ( $headings as $heading ) {
+        $text = trim( $heading->textContent );
+        if ( preg_match( '/\?$/', $text ) || preg_match( '/^(how|what|why|when|where|who|which|can|do|does|is|are|should)\b/i', $text ) ) {
+            $question_heading_count++;
+        }
+    }
+
+    $has_question_headings = $question_heading_count > 0;
+    if ( $question_heading_count >= 4 ) {
+        $score += 15;
+    } elseif ( $question_heading_count >= 2 ) {
+        $score += 10;
+    } elseif ( $question_heading_count >= 1 ) {
+        $score += 5;
+    }
+
+    $score = min( 100, $score );
+
+    return array(
+        'score'                  => $score,
+        'has_statistics'         => $has_statistics,
+        'stat_count'             => $stat_count,
+        'has_citations'          => $has_citations,
+        'outbound_links'         => $outbound_total,
+        'quality_citations'      => (int) $outbound_quality,
+        'has_front_loaded'       => $has_front_loaded,
+        'front_loaded_count'     => $front_loaded_count,
+        'has_question_headings'  => $has_question_headings,
+        'question_heading_count' => $question_heading_count,
     );
 }
 

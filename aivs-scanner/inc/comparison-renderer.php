@@ -16,12 +16,14 @@
  */
 function aivs_get_subscore_labels() {
 	return array(
+		'crawl_access'        => 'Crawl Access',
+		'feed_readiness'      => 'Feed & Manifest Readiness',
 		'schema_completeness' => 'Schema Completeness',
+		'entity_density'      => 'Entity Density',
 		'content_structure'   => 'Content Structure',
 		'faq_coverage'        => 'FAQ / Answer Coverage',
 		'summary_presence'    => 'Summary Presence',
-		'feed_readiness'      => 'Feed & Manifest Readiness',
-		'entity_density'      => 'Entity Density',
+		'content_richness'    => 'Content Richness',
 	);
 }
 

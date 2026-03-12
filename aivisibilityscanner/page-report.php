@@ -118,6 +118,7 @@ get_header();
                     <span class="pill pill--tier pill--<?php echo esc_attr( $tier['class'] ); ?>"><?php echo esc_html( $tier['label'] ); ?></span>
                 </div>
                 <p class="scanner-results__tier-message"><?php echo esc_html( $tier['message'] ); ?></p>
+                <p class="scanner-results__scope">This scan evaluates structural signals across 3 layers of the AI Visibility Stack.</p>
             </div>
 
             <!-- Critical Alerts -->
@@ -132,7 +133,7 @@ get_header();
                         <p class="critical-alert__desc">
                             Your robots.txt blocks: <?php echo ! empty( $robots_data['ai_bots_blocked'] ) && is_array( $robots_data['ai_bots_blocked'] ) ? esc_html( implode( ', ', $robots_data['ai_bots_blocked'] ) ) : 'AI crawlers'; ?>
                         </p>
-                        <a href="https://wordpress.org/plugins/answerenginewp/" class="critical-alert__cta" target="_blank" rel="noopener">
+                        <a href="#" class="critical-alert__cta aewp-waitlist-trigger">
                             Fix with AEWP's Bot Manager &rarr;
                         </a>
                     </div>
@@ -163,12 +164,14 @@ get_header();
             <?php
             // AI Visibility Stack layer mapping (fallback when API doesn't provide layer data)
             $layer_map = [
+                'crawl_access'        => [ 'layer' => 1, 'label' => 'Access' ],
+                'feed_readiness'      => [ 'layer' => 1, 'label' => 'Access' ],
                 'schema_completeness' => [ 'layer' => 2, 'label' => 'Understanding' ],
+                'entity_density'      => [ 'layer' => 2, 'label' => 'Understanding' ],
                 'content_structure'   => [ 'layer' => 3, 'label' => 'Extractability' ],
                 'faq_coverage'        => [ 'layer' => 3, 'label' => 'Extractability' ],
                 'summary_presence'    => [ 'layer' => 3, 'label' => 'Extractability' ],
-                'feed_readiness'      => [ 'layer' => 1, 'label' => 'Access' ],
-                'entity_density'      => [ 'layer' => 2, 'label' => 'Understanding' ],
+                'content_richness'    => [ 'layer' => 3, 'label' => 'Extractability' ],
             ];
             ?>
             <?php if ( is_array( $sub_scores ) && ! empty( $sub_scores ) ) : ?>
@@ -200,19 +203,26 @@ get_header();
 
             <!-- AI Visibility Stack Summary -->
             <?php
-            $layer_1_score = isset( $sub_scores['feed_readiness']['score'] )
-                ? intval( $sub_scores['feed_readiness']['score'] ) : 0;
+            // Layer 1: Access = avg(crawl_access, feed_readiness)
+            $crawl_score = isset( $sub_scores['crawl_access']['score'] ) ? intval( $sub_scores['crawl_access']['score'] ) : 0;
+            $feed_score  = isset( $sub_scores['feed_readiness']['score'] ) ? intval( $sub_scores['feed_readiness']['score'] ) : 0;
+            $layer_1_score = isset( $sub_scores['crawl_access'] )
+                ? round( ( $crawl_score + $feed_score ) / 2 )
+                : $feed_score;
 
+            // Layer 2: Understanding = avg(schema_completeness, entity_density)
             $layer_2_score = round( (
                 ( $sub_scores['schema_completeness']['score'] ?? 0 ) +
                 ( $sub_scores['entity_density']['score'] ?? 0 )
             ) / 2 );
 
-            $layer_3_score = round( (
-                ( $sub_scores['content_structure']['score'] ?? 0 ) +
-                ( $sub_scores['faq_coverage']['score'] ?? 0 ) +
-                ( $sub_scores['summary_presence']['score'] ?? 0 )
-            ) / 3 );
+            // Layer 3: Extractability = avg(content_structure, faq_coverage, summary_presence, content_richness)
+            $l3_sum = ( $sub_scores['content_structure']['score'] ?? 0 ) +
+                      ( $sub_scores['faq_coverage']['score'] ?? 0 ) +
+                      ( $sub_scores['summary_presence']['score'] ?? 0 ) +
+                      ( $sub_scores['content_richness']['score'] ?? 0 );
+            $l3_count = 3 + ( isset( $sub_scores['content_richness'] ) ? 1 : 0 );
+            $layer_3_score = round( $l3_sum / $l3_count );
 
             $stack_layers = [
                 [ 'num' => 1, 'name' => 'Access',          'score' => $layer_1_score, 'future' => false ],
@@ -226,11 +236,11 @@ get_header();
                 <h3 class="stack-summary__title">AI Visibility Stack Analysis</h3>
                 <div class="stack-summary__layers">
                     <?php foreach ( $stack_layers as $sl ) : ?>
-                        <div class="stack-summary__layer<?php echo $sl['future'] ? ' stack-summary__layer--future' : ''; ?>">
+                        <div class="stack-summary__layer<?php echo $sl['future'] ? ' stack-summary__layer--upgrade' : ''; ?>">
                             <span class="stack-summary__layer-num"><?php echo intval( $sl['num'] ); ?></span>
                             <span class="stack-summary__layer-name"><?php echo esc_html( $sl['name'] ); ?></span>
                             <?php if ( $sl['future'] ) : ?>
-                                <span class="stack-summary__layer-score">Coming soon</span>
+                                <span class="stack-summary__layer-score stack-summary__layer-score--upgrade">&#128274; Premium</span>
                             <?php else :
                                 $sl_tier = aivs_get_tier( $sl['score'] );
                             ?>
@@ -262,7 +272,10 @@ get_header();
                     if ( ! $fix_layer_num ) {
                         $title_lower = strtolower( $fix['title'] ?? '' );
                         if ( strpos( $title_lower, 'feed' ) !== false || strpos( $title_lower, 'llms.txt' ) !== false ||
-                             strpos( $title_lower, 'sitemap' ) !== false || strpos( $title_lower, 'manifest' ) !== false ) {
+                             strpos( $title_lower, 'sitemap' ) !== false || strpos( $title_lower, 'manifest' ) !== false ||
+                             strpos( $title_lower, 'crawl' ) !== false || strpos( $title_lower, 'canonical' ) !== false ||
+                             strpos( $title_lower, 'robots' ) !== false || strpos( $title_lower, 'ttfb' ) !== false ||
+                             strpos( $title_lower, 'server response' ) !== false ) {
                             $fix_layer_num = 1; $fix_layer_label = 'Access';
                         } elseif ( strpos( $title_lower, 'schema' ) !== false || strpos( $title_lower, 'entity' ) !== false ||
                                    strpos( $title_lower, 'speakable' ) !== false || strpos( $title_lower, 'json-ld' ) !== false ) {
@@ -282,7 +295,7 @@ get_header();
                         </div>
                         <p class="fix-card__desc"><?php echo esc_html( $fix['description'] ); ?></p>
                         <?php if ( ! empty( $fix['aewp_cta'] ) ) : ?>
-                            <a href="https://wordpress.org/plugins/answerenginewp/" class="fix-card__aewp-cta" target="_blank" rel="noopener">
+                            <a href="#" class="fix-card__aewp-cta aewp-waitlist-trigger">
                                 <?php echo esc_html( $fix['aewp_cta'] ); ?> &rarr;
                             </a>
                         <?php endif; ?>
@@ -314,18 +327,43 @@ get_header();
                     <div>
                         <div class="extraction__column-title extraction__column-title--found">Found</div>
                         <?php if ( ! empty( $extraction['schema_types'] ) ) : ?>
+                            <div class="extraction__group-header">Schema Types Found</div>
                             <?php foreach ( $extraction['schema_types'] as $type ) : ?>
-                                <div class="extraction__item extraction__item--found">&#10003; <?php echo esc_html( $type ); ?> schema</div>
+                                <div class="extraction__item extraction__item--found">&#10003; <?php echo esc_html( $type ); ?></div>
                             <?php endforeach; ?>
                         <?php endif; ?>
                         <?php if ( ! empty( $extraction['entities'] ) ) : ?>
+                            <div class="extraction__group-header">Entities Detected</div>
                             <?php foreach ( array_slice( $extraction['entities'], 0, 5 ) as $entity ) : ?>
-                                <div class="extraction__item extraction__item--found">&#10003; Entity: <?php echo esc_html( $entity ); ?></div>
+                                <div class="extraction__item extraction__item--found">&#10003; <?php echo esc_html( $entity ); ?></div>
                             <?php endforeach; ?>
                         <?php endif; ?>
                         <?php if ( ! empty( $extraction['headlines'] ) ) : ?>
+                            <div class="extraction__group-header">Headings Found</div>
                             <?php foreach ( array_slice( $extraction['headlines'], 0, 5 ) as $headline ) : ?>
                                 <div class="extraction__item extraction__item--found">&#10003; <?php echo esc_html( $headline ); ?></div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        <?php
+                        // Crawl & Richness Signals
+                        $signals = array();
+                        if ( ! empty( $extraction['ttfb_ms'] ) ) {
+                            $signals[] = array( 'found' => $extraction['ttfb_ms'] < 2000, 'text' => intval( $extraction['ttfb_ms'] ) . 'ms TTFB' );
+                        }
+                        if ( ! empty( $extraction['has_canonical'] ) ) $signals[] = array( 'found' => true, 'text' => 'Canonical tag present' );
+                        if ( ! empty( $extraction['is_ssr'] ) ) $signals[] = array( 'found' => true, 'text' => 'Server-side rendered' );
+                        if ( ! empty( $extraction['stat_count'] ) ) $signals[] = array( 'found' => true, 'text' => intval( $extraction['stat_count'] ) . ' statistics/data points' );
+                        if ( ! empty( $extraction['quality_citations'] ) ) $signals[] = array( 'found' => true, 'text' => intval( $extraction['quality_citations'] ) . ' quality citation(s)' );
+                        if ( ! empty( $extraction['front_loaded_count'] ) ) $signals[] = array( 'found' => true, 'text' => intval( $extraction['front_loaded_count'] ) . ' front-loaded answer(s)' );
+                        if ( ! empty( $extraction['question_heading_count'] ) ) $signals[] = array( 'found' => true, 'text' => intval( $extraction['question_heading_count'] ) . ' question heading(s)' );
+                        if ( ! empty( $extraction['list_count'] ) ) $signals[] = array( 'found' => true, 'text' => intval( $extraction['list_count'] ) . ' list(s) found' );
+                        if ( ! empty( $extraction['table_count'] ) ) $signals[] = array( 'found' => true, 'text' => intval( $extraction['table_count'] ) . ' table(s) found' );
+                        if ( ! empty( $signals ) ) : ?>
+                            <div class="extraction__group-header">Crawl &amp; Richness Signals</div>
+                            <?php foreach ( $signals as $si ) : ?>
+                                <div class="extraction__item extraction__item--<?php echo $si['found'] ? 'found' : 'missing'; ?>">
+                                    <?php echo $si['found'] ? '&#10003;' : '&#10007;'; ?> <?php echo esc_html( $si['text'] ); ?>
+                                </div>
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </div>
@@ -344,10 +382,28 @@ get_header();
             <!-- How AI Sees Your Page -->
             <?php if ( is_array( $raw_text_data ) && ! empty( $raw_text_data['raw_text'] ) ) : ?>
             <div class="raw-text-view">
-                <h3 class="raw-text-view__title">How AI Sees Your Page</h3>
-                <pre class="raw-text-view__pre"><?php echo esc_html( $raw_text_data['raw_text'] ); ?></pre>
-                <p class="raw-text-view__cta">Is this a mess? <a href="https://wordpress.org/plugins/answerenginewp/" target="_blank" rel="noopener">Install AnswerEngineWP</a> to generate a clean /llms-docs/ feed.</p>
+                <h3 class="raw-text-view__title">
+                    How AI Sees Your Page
+                    <button type="button" class="raw-text-view__toggle" id="reportRawTextToggle">Show &darr;</button>
+                </h3>
+                <div id="reportRawTextContent" style="display:none">
+                    <pre class="raw-text-view__pre"><?php echo esc_html( $raw_text_data['raw_text'] ); ?></pre>
+                </div>
+                <p class="raw-text-view__cta">Is this a mess? <a href="#" class="aewp-waitlist-trigger">Install AnswerEngineWP</a> to generate a clean /llms-docs/ feed.</p>
             </div>
+            <script>
+            (function(){
+                var btn = document.getElementById('reportRawTextToggle');
+                var content = document.getElementById('reportRawTextContent');
+                if (btn && content) {
+                    btn.addEventListener('click', function() {
+                        var hidden = content.style.display === 'none';
+                        content.style.display = hidden ? '' : 'none';
+                        btn.textContent = hidden ? 'Hide \u2191' : 'Show \u2193';
+                    });
+                }
+            })();
+            </script>
             <?php endif; ?>
 
             <!-- Blindspot Upsell -->
@@ -358,7 +414,7 @@ get_header();
                     Your site has dozens (or hundreds) of pages. Each one needs its own schema,
                     structure, and AI-ready signals. This scanner checked just one.
                 </p>
-                <a href="https://wordpress.org/plugins/answerenginewp/" class="btn btn--primary" target="_blank" rel="noopener">
+                <a href="#" class="btn btn--primary aewp-waitlist-trigger">
                     Audit your entire site with AnswerEngineWP &rarr;
                 </a>
             </div>
@@ -378,7 +434,7 @@ get_header();
             <!-- CTAs -->
             <div class="scanner-results__ctas">
                 <div class="scanner-results__cta-primary">
-                    <a href="https://answerenginewp.com" class="btn btn--primary" target="_blank" rel="noopener">
+                    <a href="#" class="btn btn--primary aewp-waitlist-trigger">
                         Improve your score &rarr; Get AnswerEngineWP
                     </a>
                 </div>

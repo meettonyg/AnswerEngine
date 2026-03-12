@@ -17,7 +17,7 @@
         <div class="site-nav__links" id="navLinks">
             <a href="<?php echo esc_url( home_url( '/methodology/' ) ); ?>" class="site-nav__link">Methodology</a>
             <a href="<?php echo esc_url( home_url( '/leaderboard/' ) ); ?>" class="site-nav__link">Leaderboard</a>
-            <a href="https://answerenginewp.com" class="site-nav__link" target="_blank" rel="noopener">Fix Your Score</a>
+            <a href="#" class="site-nav__link aewp-waitlist-trigger">Fix Your Score</a>
         </div>
     </div>
 </nav>

@@ -74,11 +74,12 @@ function aivs_scripts() {
 			true
 		);
 		wp_localize_script( 'aivs-scanner', 'aivsScanner', array(
-			'apiUrl'     => rest_url( 'aivs/v1/scan' ),
-			'emailUrl'   => rest_url( 'aivs/v1/email' ),
-			'nonce'      => wp_create_nonce( 'wp_rest' ),
-			'siteUrl'    => home_url(),
-			'tierConfig' => function_exists( 'aivs_get_tier_config_for_js' ) ? aivs_get_tier_config_for_js() : array(),
+			'apiUrl'       => rest_url( 'aivs/v1/scan' ),
+			'emailUrl'     => rest_url( 'aivs/v1/email' ),
+			'waitlistUrl'  => rest_url( 'aivs/v1/waitlist' ),
+			'nonce'        => wp_create_nonce( 'wp_rest' ),
+			'siteUrl'      => home_url(),
+			'tierConfig'   => function_exists( 'aivs_get_tier_config_for_js' ) ? aivs_get_tier_config_for_js() : array(),
 		) );
 	}
 

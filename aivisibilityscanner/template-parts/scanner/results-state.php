@@ -14,6 +14,7 @@
             </div>
             <div class="scanner-results__tier" id="scoreTier"></div>
             <p class="scanner-results__tier-message" id="scoreTierMessage"></p>
+            <p class="scanner-results__scope">This scan evaluates structural signals across 3 layers of the AI Visibility Stack.</p>
         </div>
 
         <!-- Critical Alerts (robots.txt + SPA) -->
@@ -23,7 +24,7 @@
                 <div class="critical-alert__content">
                     <h4 class="critical-alert__title">robots.txt Blocks AI Crawlers</h4>
                     <p class="critical-alert__desc" id="robotsAlertDesc"></p>
-                    <a href="https://wordpress.org/plugins/answerenginewp/" class="critical-alert__cta" target="_blank" rel="noopener">
+                    <a href="#" class="critical-alert__cta aewp-waitlist-trigger">
                         Fix with AEWP's Bot Manager &rarr;
                     </a>
                 </div>
@@ -67,15 +68,15 @@
                     <span class="stack-summary__layer-name">Extractability</span>
                     <span class="stack-summary__layer-score" id="stackScore3">&mdash;</span>
                 </div>
-                <div class="stack-summary__layer stack-summary__layer--future">
+                <div class="stack-summary__layer stack-summary__layer--upgrade">
                     <span class="stack-summary__layer-num">4</span>
                     <span class="stack-summary__layer-name">Trust</span>
-                    <span class="stack-summary__layer-score">Coming soon</span>
+                    <span class="stack-summary__layer-score stack-summary__layer-score--upgrade aewp-waitlist-trigger">&#128274; Premium</span>
                 </div>
-                <div class="stack-summary__layer stack-summary__layer--future">
+                <div class="stack-summary__layer stack-summary__layer--upgrade">
                     <span class="stack-summary__layer-num">5</span>
                     <span class="stack-summary__layer-name">Authority</span>
-                    <span class="stack-summary__layer-score">Coming soon</span>
+                    <span class="stack-summary__layer-score stack-summary__layer-score--upgrade aewp-waitlist-trigger">&#128274; Premium</span>
                 </div>
             </div>
             <p class="stack-summary__note">
@@ -139,13 +140,14 @@
         <!-- How AI Sees You (Raw Text View) -->
         <div class="raw-text-view" id="rawTextView" style="display:none">
             <h3 class="raw-text-view__title">
-                How AI Sees Your Page
+                <span class="raw-text-view__heading">How AI Sees Your Page</span>
                 <button type="button" class="raw-text-view__toggle" id="rawTextToggle">Show &darr;</button>
             </h3>
+            <p class="raw-text-view__desc">This is the raw text AI crawlers extract from your page — no styles, no images, just the words they actually read.</p>
             <div class="raw-text-view__content" id="rawTextContent" style="display:none">
                 <pre class="raw-text-view__pre" id="rawTextPre"></pre>
             </div>
-            <p class="raw-text-view__cta">Is this a mess? <a href="https://wordpress.org/plugins/answerenginewp/" target="_blank" rel="noopener">Install AnswerEngineWP</a> to generate a clean /llms-docs/ feed.</p>
+            <p class="raw-text-view__cta">Is this a mess? <a href="#" class="aewp-waitlist-trigger">Install AnswerEngineWP</a> to generate a clean /llms-docs/ feed.</p>
         </div>
 
         <!-- Blindspot Upsell -->
@@ -156,7 +158,7 @@
                 Your site has dozens (or hundreds) of pages. Each one needs its own schema,
                 structure, and AI-ready signals. This scanner checked just one.
             </p>
-            <a href="https://wordpress.org/plugins/answerenginewp/" class="btn btn--primary" target="_blank" rel="noopener">
+            <a href="#" class="btn btn--primary aewp-waitlist-trigger">
                 Audit your entire site with AnswerEngineWP &rarr;
             </a>
         </div>
@@ -176,7 +178,7 @@
         <!-- CTAs -->
         <div class="scanner-results__ctas">
             <div class="scanner-results__cta-primary">
-                <a href="https://wordpress.org/plugins/answerenginewp/" class="btn btn--primary" target="_blank" rel="noopener" id="installCta">
+                <a href="#" class="btn btn--primary aewp-waitlist-trigger" id="installCta">
                     Improve your score &rarr; Get AnswerEngineWP
                 </a>
             </div>
