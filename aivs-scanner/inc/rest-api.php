@@ -524,23 +524,44 @@ function aivs_handle_waitlist( WP_REST_Request $request ) {
             ? sanitize_text_field( $context['source_page'] )
             : '';
 
-        wp_remote_post( 'https://rest.gohighlevel.com/v1/contacts/', array(
-            'timeout'  => 5,
-            'blocking' => false,
-            'headers'  => array(
-                'Content-Type'  => 'application/json',
-                'Authorization' => 'Bearer ' . $ghl_api_key,
-            ),
+        $ghl_headers = array(
+            'Content-Type'  => 'application/json',
+            'Authorization' => 'Bearer ' . $ghl_api_key,
+        );
+
+        // Create or update contact without sending tags (avoids overwriting existing tags).
+        $contact_response = wp_remote_post( 'https://rest.gohighlevel.com/v1/contacts/', array(
+            'timeout'  => 10,
+            'headers'  => $ghl_headers,
             'body'     => wp_json_encode( array(
                 'email'       => $email,
                 'source'      => 'AI Visibility Scanner',
-                'tags'        => array( 'aewp-waitlist' ),
                 'customField' => array(
                     'aivs_waitlist_source' => $source_page,
                     'aivs_waitlist_date'   => current_time( 'c' ),
                 ),
             ) ),
         ) );
+
+        // Add tag via dedicated endpoint so existing tags are preserved.
+        $contact_id = '';
+        if ( ! is_wp_error( $contact_response ) ) {
+            $body = json_decode( wp_remote_retrieve_body( $contact_response ), true );
+            if ( ! empty( $body['contact']['id'] ) ) {
+                $contact_id = $body['contact']['id'];
+            }
+        }
+
+        if ( ! empty( $contact_id ) ) {
+            wp_remote_post( 'https://rest.gohighlevel.com/v1/contacts/' . $contact_id . '/tags/', array(
+                'timeout'  => 5,
+                'blocking' => false,
+                'headers'  => $ghl_headers,
+                'body'     => wp_json_encode( array(
+                    'tags' => array( 'aewp-waitlist' ),
+                ) ),
+            ) );
+        }
     }
 
     do_action( 'aivs_waitlist_signup', $email, $context );
