@@ -490,57 +490,51 @@ function aivs_handle_waitlist( WP_REST_Request $request ) {
     }
     set_transient( $transient, $count + 1, HOUR_IN_SECONDS );
 
-    // Check for duplicate email
-    $existing = get_posts( array(
-        'post_type'   => 'aivs_scan',
-        'post_status' => 'publish',
-        'meta_key'    => '_aivs_waitlist_email',
-        'meta_value'  => sanitize_email( $email ),
-        'numberposts' => 1,
-        'fields'      => 'ids',
-    ) );
-
-    if ( empty( $existing ) ) {
-        // Store as a lightweight post with waitlist meta
-        $post_id = wp_insert_post( array(
-            'post_type'   => 'aivs_scan',
-            'post_status' => 'publish',
-            'post_title'  => 'Waitlist: ' . sanitize_email( $email ),
-        ) );
-
-        if ( $post_id && ! is_wp_error( $post_id ) ) {
-            update_post_meta( $post_id, '_aivs_waitlist_email', sanitize_email( $email ) );
-            update_post_meta( $post_id, '_aivs_waitlist_date', current_time( 'mysql' ) );
-            if ( is_array( $context ) ) {
-                update_post_meta( $post_id, '_aivs_waitlist_context', $context );
-            }
-        }
-    }
-
-    // Push to GoHighLevel
+    // Push to GoHighLevel (sole storage for waitlist contacts)
     $ghl_api_key = defined( 'AIVS_GHL_API_KEY' ) ? AIVS_GHL_API_KEY : '';
     if ( ! empty( $ghl_api_key ) ) {
         $source_page = ( is_array( $context ) && ! empty( $context['source_page'] ) )
             ? sanitize_text_field( $context['source_page'] )
             : '';
 
-        wp_remote_post( 'https://rest.gohighlevel.com/v1/contacts/', array(
-            'timeout'  => 5,
-            'blocking' => false,
-            'headers'  => array(
-                'Content-Type'  => 'application/json',
-                'Authorization' => 'Bearer ' . $ghl_api_key,
-            ),
+        $ghl_headers = array(
+            'Content-Type'  => 'application/json',
+            'Authorization' => 'Bearer ' . $ghl_api_key,
+        );
+
+        // Create or update contact without sending tags (avoids overwriting existing tags).
+        $contact_response = wp_remote_post( 'https://rest.gohighlevel.com/v1/contacts/', array(
+            'timeout'  => 10,
+            'headers'  => $ghl_headers,
             'body'     => wp_json_encode( array(
                 'email'       => $email,
                 'source'      => 'AI Visibility Scanner',
-                'tags'        => array( 'aewp-waitlist' ),
                 'customField' => array(
                     'aivs_waitlist_source' => $source_page,
                     'aivs_waitlist_date'   => current_time( 'c' ),
                 ),
             ) ),
         ) );
+
+        // Add tag via dedicated endpoint so existing tags are preserved.
+        $contact_id = '';
+        if ( ! is_wp_error( $contact_response ) ) {
+            $body = json_decode( wp_remote_retrieve_body( $contact_response ), true );
+            if ( ! empty( $body['contact']['id'] ) ) {
+                $contact_id = $body['contact']['id'];
+            }
+        }
+
+        if ( ! empty( $contact_id ) ) {
+            wp_remote_post( 'https://rest.gohighlevel.com/v1/contacts/' . $contact_id . '/tags/', array(
+                'timeout'  => 5,
+                'blocking' => false,
+                'headers'  => $ghl_headers,
+                'body'     => wp_json_encode( array(
+                    'tags' => array( 'aewp-waitlist' ),
+                ) ),
+            ) );
+        }
     }
 
     do_action( 'aivs_waitlist_signup', $email, $context );

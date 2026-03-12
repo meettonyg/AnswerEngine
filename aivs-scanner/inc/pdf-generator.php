@@ -65,7 +65,7 @@ function aivs_generate_pdf( $scan ) {
         $options = new \Dompdf\Options();
         $options->set( 'isHtml5ParserEnabled', true );
         $options->set( 'isRemoteEnabled', false );
-        $options->set( 'defaultFont', 'Helvetica' );
+        $options->set( 'defaultFont', 'DejaVu Sans' );
 
         $dompdf = new \Dompdf\Dompdf( $options );
         $dompdf->loadHtml( $html );
@@ -150,7 +150,7 @@ function aivs_build_pdf_html( $data ) {
 
     $html = '<!DOCTYPE html><html><head><meta charset="UTF-8">
     <style>
-        body { font-family: Helvetica, Arial, sans-serif; color: #334155; line-height: 1.6; margin: 0; padding: 40px; }
+        body { font-family: "DejaVu Sans", Helvetica, Arial, sans-serif; color: #334155; line-height: 1.6; margin: 0; padding: 40px; }
         .page { page-break-after: always; padding: 40px 0; }
         .page:last-child { page-break-after: auto; }
         h1 { color: #0F172A; font-size: 28px; margin-bottom: 8px; }
@@ -185,7 +185,7 @@ function aivs_build_pdf_html( $data ) {
         .stack-layer { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; margin-bottom: 8px; border-radius: 8px; background: #F8FAFC; }
         .stack-layer--future { opacity: 0.5; }
         .stack-layer__name { font-size: 14px; font-weight: 600; color: #0F172A; }
-        .stack-layer__num { display: inline-block; width: 24px; height: 24px; border-radius: 50%; background: #E2E8F0; text-align: center; line-height: 24px; font-size: 12px; font-weight: 600; color: #334155; margin-right: 10px; }
+        .stack-layer__num { display: inline-block; width: 24px; height: 24px; border-radius: 50%; background: #E2E8F0; text-align: center; line-height: 22px; font-size: 12px; font-weight: 600; color: #334155; margin-right: 10px; padding-top: 2px; }
         .stack-layer__score { font-size: 16px; font-weight: 600; }
         .stack-layer__future-label { font-size: 13px; color: #94A3B8; font-style: italic; }
         .citation-card { background: #F8FAFC; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
