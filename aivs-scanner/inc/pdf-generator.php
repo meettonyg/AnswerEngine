@@ -65,7 +65,7 @@ function aivs_generate_pdf( $scan ) {
         $options = new \Dompdf\Options();
         $options->set( 'isHtml5ParserEnabled', true );
         $options->set( 'isRemoteEnabled', false );
-        $options->set( 'defaultFont', 'Helvetica' );
+        $options->set( 'defaultFont', 'DejaVu Sans' );
 
         $dompdf = new \Dompdf\Dompdf( $options );
         $dompdf->loadHtml( $html );
@@ -150,7 +150,7 @@ function aivs_build_pdf_html( $data ) {
 
     $html = '<!DOCTYPE html><html><head><meta charset="UTF-8">
     <style>
-        body { font-family: Helvetica, Arial, sans-serif; color: #334155; line-height: 1.6; margin: 0; padding: 40px; }
+        body { font-family: "DejaVu Sans", Helvetica, Arial, sans-serif; color: #334155; line-height: 1.6; margin: 0; padding: 40px; }
         .page { page-break-after: always; padding: 40px 0; }
         .page:last-child { page-break-after: auto; }
         h1 { color: #0F172A; font-size: 28px; margin-bottom: 8px; }
