@@ -128,6 +128,8 @@ function aivs_scan_url( $url, $page_type = 'auto' ) {
     $crawl_data        = aivs_analyze_crawl_access( $robots_data, $spa_data, $ttfb_ms, $xpath );
     $richness_data     = aivs_analyze_content_richness( $doc, $xpath, $html );
 
+    $speakable_score = ! empty( $schema_data['has_speakable'] ) ? 100 : 0;
+
     $sub_scores = array(
         'crawl_access' => array(
             'score'       => $crawl_data['score'],
@@ -169,18 +171,24 @@ function aivs_scan_url( $url, $page_type = 'auto' ) {
             'label'       => 'Content Richness',
             'description' => 'Does your content include statistics, quality citations, and front-loaded answers?',
         ),
+        'speakable_markup' => array(
+            'score'       => $speakable_score,
+            'label'       => 'Speakable Markup',
+            'description' => 'Can assistants identify citation-ready passages for voice and answer extraction?',
+        ),
     );
 
-    // Weighted overall score (8 sub-scores)
+    $layer_scores = aivs_calculate_layer_scores( $sub_scores );
+
+    // Weighted overall score
     $overall = round(
-        $crawl_data['score']     * 0.15 +
-        $feed_data['score']      * 0.08 +
-        $schema_data['score']    * 0.15 +
-        $entity_data['score']    * 0.10 +
-        $structure_data['score'] * 0.12 +
-        $faq_data['score']       * 0.12 +
-        $summary_data['score']   * 0.12 +
-        $richness_data['score']  * 0.16
+        $schema_data['score']    * 0.20 +
+        $entity_data['score']    * 0.15 +
+        $speakable_score         * 0.10 +
+        $structure_data['score'] * 0.15 +
+        $faq_data['score']       * 0.15 +
+        $summary_data['score']   * 0.15 +
+        $feed_data['score']      * 0.10
     );
     $overall = max( 0, min( 100, $overall ) );
 
@@ -225,6 +233,7 @@ function aivs_scan_url( $url, $page_type = 'auto' ) {
         'tier'                => $tier_data['key'],
         'tier_label'          => $tier_data['label'],
         'sub_scores'          => $sub_scores,
+        'layer_scores'        => $layer_scores,
         'fixes'               => $fixes,
         'projected_score'     => $projected,
         'extraction'          => $extraction,
@@ -235,6 +244,36 @@ function aivs_scan_url( $url, $page_type = 'auto' ) {
         'page_type'           => $page_type,
         'page_type_matches'   => $schema_data['page_type_matches'],
         'page_type_mismatches' => $schema_data['page_type_mismatches'],
+    );
+}
+
+/**
+ * Calculate layer scores for the AI Visibility Stack.
+ *
+ * @param array $sub_scores Sub-score array keyed by signal id.
+ * @return array
+ */
+function aivs_calculate_layer_scores( $sub_scores ) {
+    $get_score = function( $key ) use ( $sub_scores ) {
+        return isset( $sub_scores[ $key ]['score'] ) ? intval( $sub_scores[ $key ]['score'] ) : 0;
+    };
+
+    return array(
+        'layer_1_access' => array(
+            'label'   => 'Access',
+            'score'   => $get_score( 'feed_readiness' ),
+            'signals' => array( 'feed_readiness' ),
+        ),
+        'layer_2_understanding' => array(
+            'label'   => 'Understanding',
+            'score'   => round( ( $get_score( 'schema_completeness' ) + $get_score( 'entity_density' ) + $get_score( 'speakable_markup' ) ) / 3 ),
+            'signals' => array( 'schema_completeness', 'entity_density', 'speakable_markup' ),
+        ),
+        'layer_3_extractability' => array(
+            'label'   => 'Extractability',
+            'score'   => round( ( $get_score( 'content_structure' ) + $get_score( 'faq_coverage' ) + $get_score( 'summary_presence' ) ) / 3 ),
+            'signals' => array( 'content_structure', 'faq_coverage', 'summary_presence' ),
+        ),
     );
 }
 
@@ -957,6 +996,9 @@ function aivs_generate_fixes( $sub_scores, $schema_data, $structure_data, $faq_d
             'description'  => 'Your site lacks structured FAQ markup. Adding FAQPage schema helps AI systems extract and cite your answers directly.',
             'aewp_feature' => 'faq_schema_generator',
             'aewp_cta'     => 'Fix with AEWP\'s FAQ Schema Generator',
+            'factor_id'    => 'Factor 2.5',
+            'layer_num'    => 3,
+            'layer_name'   => 'Extractability',
             'priority'     => 100 - $sub_scores['faq_coverage']['score'],
         );
     }
@@ -968,6 +1010,9 @@ function aivs_generate_fixes( $sub_scores, $schema_data, $structure_data, $faq_d
             'description'  => 'Your pages have limited or missing schema.org markup. Add Article, Organization, or Product schema to make your content machine-readable.',
             'aewp_feature' => 'ai_schema_generator',
             'aewp_cta'     => 'Fix with AEWP\'s 1-Click AI Schema Generator',
+            'factor_id'    => 'Factor 2.1',
+            'layer_num'    => 2,
+            'layer_name'   => 'Understanding',
             'priority'     => 100 - $sub_scores['schema_completeness']['score'],
         );
     }
@@ -979,6 +1024,9 @@ function aivs_generate_fixes( $sub_scores, $schema_data, $structure_data, $faq_d
             'description'  => 'Your top pages lack concise opening summaries. AI systems need clear, extractable summary text to generate citations.',
             'aewp_feature' => 'answer_summary_block',
             'aewp_cta'     => 'Fix with AEWP\'s Answer Summary Block',
+            'factor_id'    => 'Factor 3.4',
+            'layer_num'    => 3,
+            'layer_name'   => 'Extractability',
             'priority'     => 100 - $sub_scores['summary_presence']['score'],
         );
     }
@@ -990,6 +1038,9 @@ function aivs_generate_fixes( $sub_scores, $schema_data, $structure_data, $faq_d
             'description'  => 'Your heading structure has gaps or inconsistencies. A clean H1 > H2 > H3 hierarchy helps AI systems understand your content organization.',
             'aewp_feature' => 'gutenberg_analyzer',
             'aewp_cta'     => 'Fix with AEWP\'s Gutenberg Analyzer',
+            'factor_id'    => 'Factor 3.1',
+            'layer_num'    => 3,
+            'layer_name'   => 'Extractability',
             'priority'     => 100 - $sub_scores['content_structure']['score'],
         );
     }
@@ -1001,6 +1052,9 @@ function aivs_generate_fixes( $sub_scores, $schema_data, $structure_data, $faq_d
             'description'  => 'These machine-readable manifests tell AI crawlers what your site is about and how to extract your content.',
             'aewp_feature' => 'llms_txt_generator',
             'aewp_cta'     => 'Fix with AEWP\'s Dynamic LLMs.txt Generator',
+            'factor_id'    => 'Factor 1.1',
+            'layer_num'    => 1,
+            'layer_name'   => 'Access',
             'priority'     => 100 - $sub_scores['feed_readiness']['score'],
         );
     }
@@ -1012,6 +1066,9 @@ function aivs_generate_fixes( $sub_scores, $schema_data, $structure_data, $faq_d
             'description'  => 'Your content has few machine-identifiable entities. Use proper nouns, organization names, and place names consistently.',
             'aewp_feature' => 'eeat_profile_enhancer',
             'aewp_cta'     => 'Fix with AEWP\'s E-E-A-T Profile Enhancer',
+            'factor_id'    => 'Factor 2.3',
+            'layer_num'    => 2,
+            'layer_name'   => 'Understanding',
             'priority'     => 100 - $sub_scores['entity_density']['score'],
         );
     }
@@ -1023,6 +1080,9 @@ function aivs_generate_fixes( $sub_scores, $schema_data, $structure_data, $faq_d
             'description'  => 'Speakable schema tells AI systems which parts of your content are best suited for voice and citation use.',
             'aewp_feature' => 'speakable_injector',
             'aewp_cta'     => 'Fix with AEWP\'s Speakable Markup Injector',
+            'factor_id'    => 'Factor 2.10',
+            'layer_num'    => 2,
+            'layer_name'   => 'Understanding',
             'priority'     => 85,
         );
     }
@@ -1043,6 +1103,9 @@ function aivs_generate_fixes( $sub_scores, $schema_data, $structure_data, $faq_d
             'description'  => $fix['description'],
             'aewp_feature' => isset( $fix['aewp_feature'] ) ? $fix['aewp_feature'] : '',
             'aewp_cta'     => isset( $fix['aewp_cta'] ) ? $fix['aewp_cta'] : '',
+            'factor_id'    => isset( $fix['factor_id'] ) ? $fix['factor_id'] : '',
+            'layer_num'    => isset( $fix['layer_num'] ) ? intval( $fix['layer_num'] ) : 0,
+            'layer_name'   => isset( $fix['layer_name'] ) ? $fix['layer_name'] : '',
         );
     }, $fixes );
 }
@@ -1072,7 +1135,7 @@ function aivs_get_missing_items( $schema_data, $structure_data, $faq_data, $summ
     }
 
     if ( ! $schema_data['has_speakable'] ) {
-        $missing[] = 'No Speakable markup';
+        $missing[] = 'Missing Factor 2.10: Speakable Schema';
     }
 
     if ( empty( $schema_data['has_person_schema'] ) ) {
@@ -1080,19 +1143,19 @@ function aivs_get_missing_items( $schema_data, $structure_data, $faq_data, $summ
     }
 
     if ( $feed_data['score'] < 40 ) {
-        $missing[] = 'No /llms.txt file';
+        $missing[] = 'Missing Factor 1.1: LLM Feed Manifest (/llms.txt)';
     }
 
     if ( $faq_data['score'] < 20 ) {
-        $missing[] = 'No FAQ schema';
+        $missing[] = 'Missing Factor 2.5: FAQ Schema Coverage';
     }
 
     if ( $summary_data['score'] < 30 ) {
-        $missing[] = 'No extractable summary';
+        $missing[] = 'Missing Factor 3.4: Extractable Summary Block';
     }
 
     if ( empty( $schema_data['types'] ) ) {
-        $missing[] = 'No schema.org types detected';
+        $missing[] = 'Missing Factor 2.1: Core Schema Types';
     }
 
     // Content richness issues

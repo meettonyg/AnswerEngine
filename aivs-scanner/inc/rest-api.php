@@ -226,6 +226,7 @@ function aivs_handle_scan( WP_REST_Request $request ) {
         'tier_color'         => $tier_data['color'],
         'tier_message'       => $tier_data['message'],
         'sub_scores'         => $result['sub_scores'],
+        'layer_scores'       => isset( $result['layer_scores'] ) ? $result['layer_scores'] : array(),
         'fixes'              => $result['fixes'],
         'projected_score'    => $result['projected_score'],
         'extraction'         => $result['extraction'],
@@ -669,6 +670,9 @@ function aivs_save_scan_result( $url, $result, $competitor_data = null ) {
     update_post_meta( $post_id, '_aivs_score', $result['score'] );
     update_post_meta( $post_id, '_aivs_tier', $result['tier'] );
     update_post_meta( $post_id, '_aivs_sub_scores', $result['sub_scores'] );
+    if ( isset( $result['layer_scores'] ) ) {
+        update_post_meta( $post_id, '_aivs_layer_scores', $result['layer_scores'] );
+    }
     update_post_meta( $post_id, '_aivs_extraction_data', $result['extraction'] );
     update_post_meta( $post_id, '_aivs_fixes', $result['fixes'] );
     update_post_meta( $post_id, '_aivs_scanned_at', current_time( 'mysql' ) );
