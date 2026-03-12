@@ -185,7 +185,7 @@ function aivs_build_pdf_html( $data ) {
         .stack-layer { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; margin-bottom: 8px; border-radius: 8px; background: #F8FAFC; }
         .stack-layer--future { opacity: 0.5; }
         .stack-layer__name { font-size: 14px; font-weight: 600; color: #0F172A; }
-        .stack-layer__num { display: inline-block; width: 24px; height: 24px; border-radius: 50%; background: #E2E8F0; text-align: center; line-height: 24px; font-size: 12px; font-weight: 600; color: #334155; margin-right: 10px; }
+        .stack-layer__num { display: inline-block; width: 24px; height: 24px; border-radius: 50%; background: #E2E8F0; text-align: center; line-height: 22px; font-size: 12px; font-weight: 600; color: #334155; margin-right: 10px; padding-top: 2px; }
         .stack-layer__score { font-size: 16px; font-weight: 600; }
         .stack-layer__future-label { font-size: 13px; color: #94A3B8; font-style: italic; }
         .citation-card { background: #F8FAFC; border-radius: 8px; padding: 20px; margin-bottom: 16px; }

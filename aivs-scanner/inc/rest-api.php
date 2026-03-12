@@ -490,34 +490,7 @@ function aivs_handle_waitlist( WP_REST_Request $request ) {
     }
     set_transient( $transient, $count + 1, HOUR_IN_SECONDS );
 
-    // Check for duplicate email
-    $existing = get_posts( array(
-        'post_type'   => 'aivs_scan',
-        'post_status' => 'publish',
-        'meta_key'    => '_aivs_waitlist_email',
-        'meta_value'  => sanitize_email( $email ),
-        'numberposts' => 1,
-        'fields'      => 'ids',
-    ) );
-
-    if ( empty( $existing ) ) {
-        // Store as a lightweight post with waitlist meta
-        $post_id = wp_insert_post( array(
-            'post_type'   => 'aivs_scan',
-            'post_status' => 'publish',
-            'post_title'  => 'Waitlist: ' . sanitize_email( $email ),
-        ) );
-
-        if ( $post_id && ! is_wp_error( $post_id ) ) {
-            update_post_meta( $post_id, '_aivs_waitlist_email', sanitize_email( $email ) );
-            update_post_meta( $post_id, '_aivs_waitlist_date', current_time( 'mysql' ) );
-            if ( is_array( $context ) ) {
-                update_post_meta( $post_id, '_aivs_waitlist_context', $context );
-            }
-        }
-    }
-
-    // Push to GoHighLevel
+    // Push to GoHighLevel (sole storage for waitlist contacts)
     $ghl_api_key = defined( 'AIVS_GHL_API_KEY' ) ? AIVS_GHL_API_KEY : '';
     if ( ! empty( $ghl_api_key ) ) {
         $source_page = ( is_array( $context ) && ! empty( $context['source_page'] ) )
